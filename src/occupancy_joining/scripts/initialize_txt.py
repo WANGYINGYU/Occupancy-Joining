@@ -55,7 +55,7 @@ def main():
     (out/'initialization.json').write_text(json.dumps(dict(status='completed',pose_estimate=estimate,source=source,input_prior='provided correlated scan-matching/odometric poses, not independent ground truth',input_frames=len(ranges),output_frames=len(accepted),timestamps=time_source,missing_frames='not fabricated; output rows contain only explicitly associated scans'),indent=2))
     # This recipe consumes the exported subset once; do not reapply start/stride.
     recipe={key:copy.deepcopy(cfg[key]) for key in ['input','submaps','optimizer','display']}
-    recipe['input'].update(type='txt',dataset='.',ranges=None,poses=None,odom=None,mat=None,
+    recipe['input'].update(type='txt',dataset='.',ranges=None,poses=None,odom=None,
                            ground_truth=None,start=0,stride=1,max_scans=0)
     (out/'joining.yaml').write_text(yaml.safe_dump(recipe,sort_keys=False))
     print(f'Initialization exported: {out}',flush=True)

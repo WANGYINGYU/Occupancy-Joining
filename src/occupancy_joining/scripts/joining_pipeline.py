@@ -8,11 +8,11 @@ from geometry import se2,pose2
 from grid_io import build_map,write_grid,read_grid,export_image
 from project_paths import ROOT
 
-DEFAULTS=dict(input=dict(type='txt',dataset=None,ranges=None,poses=None,odom=None,mat=None,pose_source='odometry',start=0,stride=1,max_scans=0,angle_min=-2.356194490192345,angle_max=2.356194490192345,min_range=.1,max_range=30.,scan_period=.1,mat_range_key='range',mat_pose_key='groundtruth',mat_odom_key='odom',ground_truth=None),
- submaps=dict(partition='frames',max_extent=30.,max_travel=60.,overlap_travel=6.,scans_per_submap=1000,overlap=0,local_resolution=.1,cell_update_policy='first_sample',anchor_poses=None,anchor_noise_translation=0.,anchor_noise_rotation=0.,seed=0),
+DEFAULTS=dict(input=dict(type='txt',dataset=None,ranges=None,poses=None,odom=None,start=0,stride=1,max_scans=0,angle_min=-2.356194490192345,angle_max=2.356194490192345,min_range=.1,max_range=30.,scan_period=.1,ground_truth=None),
+ submaps=dict(partition='frames',max_extent=30.,max_travel=60.,overlap_travel=6.,scans_per_submap=1000,overlap=0,local_resolution=.1,cell_update_policy='first_sample',anchor_poses=None),
  optimizer=dict(model='matlab_inverse',max_iterations=70,tolerance=1e-7,global_resolution=.1,padding=5.,minimum_count=1e-9,max_cells=2000000,huber_delta=1.,n_smoothing=1e-6,inverse_delete_threshold=.5,count_delete_threshold=.001,inverse_gradient='matlab',max_backtracks=10,continuation_sigmas=[0.]),
  display=dict(resolution=.05,cell_update_policy='first_sample'),bag=dict(pose_estimate='causal',graph_exporter=None,scan_topic='auto',odom_source='auto',odom_topic='/odom',tf_topic='/tf',tf_static_topic='/tf_static',odom_frame='odom',tf_max_gap=.2,projection_frame=None,min_height=-.2,max_height=.2,bins=720,icp_distance=.8,beam_stride=1,scan_stride=1,start=0,max_scans=0,min_range=.1,max_range=30.,slam_config=None,frontend_resolution=None,scan_timeout=3.,startup_timeout=30.,min_accepted_fraction=.8,domain_id=87))
-PATHS={'dataset','ranges','poses','odom','mat','anchor_poses','slam_config','graph_exporter','ground_truth'}
+PATHS={'dataset','ranges','poses','odom','anchor_poses','slam_config','graph_exporter','ground_truth'}
 
 def settings(path):
     import copy
@@ -41,14 +41,6 @@ def odom_to_pose(odom):
     for i in range(1,len(odom)):result[i]=pose2(se2(result[i-1])@se2(odom[i]))
     return result
 
-def load_mat(path,keys):
-    from scipy.io import loadmat
-    try:return {k:np.asarray(v) for k,v in loadmat(path,variable_names=keys).items() if k in keys}
-    except NotImplementedError:
-        import h5py
-        with h5py.File(path) as f:
-            return {k:np.asarray(f[k]).T for k in keys if k in f and isinstance(f[k],h5py.Dataset) and f[k].dtype.kind in 'fiu'}
-
 def matrix(path):return np.loadtxt(path,ndmin=2)
 
 def save_timestamps(path,times):
@@ -56,18 +48,7 @@ def save_timestamps(path,times):
 
 def load_input(cfg,out):
     a=cfg['input'];gt=None;timestamps=None
-    if a['type']=='mat':
-        if not a['mat']:raise ValueError('Supply --mat or input.mat')
-        rk,pk,ok=a['mat_range_key'],a['mat_pose_key'],a['mat_odom_key']
-        data=load_mat(a['mat'],[rk,pk,ok]);ranges=data[rk]
-        if pk in data:
-            gt=data[pk];gt=gt.T if gt.shape[0]==3 and gt.shape[1]!=3 else gt
-        if a['pose_source']=='groundtruth':
-            if gt is None:raise ValueError('No requested groundtruth pose key in MAT')
-            poses=gt.copy()
-        elif a['pose_source']=='odometry':poses=odom_to_pose(data[ok])
-        else:raise ValueError('MAT pose_source must be odometry or explicitly groundtruth for a controlled demo')
-    elif a['type']=='txt':
+    if a['type']=='txt':
         dataset=Path(a['dataset']) if a['dataset'] else None
         def file(key,default):return Path(a[key]) if a[key] else dataset/default if dataset else None
         rp=file('ranges','Range.txt');pp=file('poses','Pose.txt');op=file('odom','Odom.txt')
@@ -91,7 +72,7 @@ def load_input(cfg,out):
         timestamps=np.asarray([s.time for s in scans],dtype=np.int64)
         (front/'input_topics.json').write_text(json.dumps(args.resolved_input_topics,indent=2))
         (front/'odometry.json').write_text(json.dumps(dict(source=source,diagnostics=diagnostics),indent=2))
-    else:raise ValueError('Input type must be txt, mat, bag or submaps')
+    else:raise ValueError('Input type must be txt, bag or submaps')
     if a['type']=='txt' and a['ground_truth']:
         gt=matrix(a['ground_truth'])
         if gt.shape!=(len(ranges),3) or not np.isfinite(gt).all():raise ValueError('Ground truth rows do not match the input')
@@ -142,6 +123,7 @@ def trajectory(anchors,blocks,n):
 
 def validate(cfg):
     a=cfg['input'];o=cfg['optimizer'];s=cfg['submaps']
+    if a['type'] not in ('txt','bag','submaps'):raise ValueError('Input type must be txt, bag or submaps')
     for section,items in cfg.items():
         for key,val in items.items():
             if isinstance(val,float) and not np.isfinite(val):raise ValueError(f'Nonfinite {section}.{key}')
@@ -161,12 +143,12 @@ def validate(cfg):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config',type=Path)
-    p.add_argument('--input-type',choices=('txt','mat','bag','submaps'))
-    p.add_argument('--dataset',type=Path);p.add_argument('--mat',type=Path);p.add_argument('--manifest',type=Path)
+    p.add_argument('--input-type',choices=('txt','bag','submaps'))
+    p.add_argument('--dataset',type=Path);p.add_argument('--manifest',type=Path)
     p.add_argument('--output',type=Path);p.add_argument('--backend',type=Path)
     p.add_argument('--max-scans',type=int);p.add_argument('--iterations',type=int);p.add_argument('--display-resolution',type=float)
     args=p.parse_args();cfg=settings(args.config.resolve() if args.config else None)
-    for key,attr in [('type','input_type'),('dataset','dataset'),('mat','mat'),('max_scans','max_scans')]:
+    for key,attr in [('type','input_type'),('dataset','dataset'),('max_scans','max_scans')]:
         val=getattr(args,attr)
         if val is not None:cfg['input'][key]=str(val.resolve()) if isinstance(val,Path) else val
     supplied_submaps=None
@@ -197,16 +179,10 @@ def main():
         else:
             ranges,poses,gt=load_input(cfg,out);a=cfg['input'];s=cfg['submaps']
             angles=np.linspace(a['angle_min'],a['angle_max'],ranges.shape[1]);blocks=partition_blocks(poses,s)
-            anchors=np.array([b[2] for b in blocks]);rng=np.random.default_rng(s['seed'])
+            anchors=np.array([b[2] for b in blocks])
             if s['anchor_poses']:
                 anchors=matrix(s['anchor_poses'])
                 if anchors.shape!=(len(blocks),3) or not np.isfinite(anchors).all():raise ValueError('Wrong anchor_poses shape')
-            elif s['anchor_noise_translation'] or s['anchor_noise_rotation']:
-                if a['pose_source']!='groundtruth':raise ValueError('Anchor perturbations require explicit controlled groundtruth input')
-                xy=rng.normal(0,s['anchor_noise_translation'],(len(anchors)-1,2));th=rng.normal(0,s['anchor_noise_rotation'],len(anchors)-1)
-                t=s['anchor_noise_translation'];rot=s['anchor_noise_rotation']
-                xy=np.where(xy>2*t,t,np.where(xy < -2*t,-t,xy));th=np.where(th>2*rot,rot,np.where(th < -2*rot,-rot,th))
-                anchors[1:,:2]+=xy;anchors[1:,2]+=th
             np.savetxt(out/'input_poses.txt',poses);np.savetxt(out/'initial_anchors.txt',anchors)
             data=dict(optimizer=cfg['optimizer'],submaps=[])
             for i,(begin,end,_,local,anchor_index) in enumerate(blocks):
@@ -234,7 +210,7 @@ def main():
             else:write_grid(g,folder/'display.grid') # no raw rays: preserve native resolution explicitly
         (out/'metrics.json').write_text(json.dumps(metrics,indent=2,allow_nan=False))
         (out/'effective_config.yaml').write_text(yaml.safe_dump(cfg))
-        status=dict(status='completed',input=cfg['input']['type'],model=cfg['optimizer']['model'],controlled_gt_submaps=cfg['input']['type']=='mat' and cfg['input']['pose_source']=='groundtruth',display_resolution=cfg['display']['resolution'] if blocks else 'native: raw scans unavailable')
+        status=dict(status='completed',input=cfg['input']['type'],model=cfg['optimizer']['model'],display_resolution=cfg['display']['resolution'] if blocks else 'native: raw scans unavailable')
         print(f'Completed. Result: {out}',flush=True)
     except Exception as exc:
         status=dict(status='failed',error=str(exc));raise

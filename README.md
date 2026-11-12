@@ -6,10 +6,12 @@ Yingyu Wang, Liang Zhao, and Shoudong Huang
 ROS 2 / C++17 implementation for jointly optimizing a global 2D occupancy map
 and local submap frames using global-to-local projection and a pose-only Schur solve.
 
-![Submap joining on the b2 museum dataset](media/b2.gif)
+![Joining three initially displaced synthetic submaps](media/room.gif)
 
-**b2 demo:** 51,833 scans and 35 submaps. The animation shows recorded submap
-updates, followed by the initial map, optimized occupancy field and pose-rebuilt map.
+**Synthetic alignment demo:** three internally exact submaps with imposed frame
+errors. Recorded C++ updates reduce pose RMSE from 0.632 m to below 0.001 m.
+The animation compares initial alignment, actual joining updates and all three
+occupancy-map outputs at fixed views.
 
 ## Installation
 
@@ -38,7 +40,7 @@ Install ROS 2 Jazzy, then run:
 sudo apt update
 sudo apt install -y build-essential cmake python3-colcon-common-extensions \
   python3-venv python3-pip python3-numpy python3-scipy python3-yaml \
-  python3-h5py python3-pil libeigen3-dev libyaml-cpp-dev \
+  python3-pil libeigen3-dev libyaml-cpp-dev \
   libboost-serialization-dev ros-jazzy-ament-cmake \
   ros-jazzy-slam-toolbox ros-jazzy-rviz2 ros-jazzy-rmw-fastrtps-cpp
 /usr/bin/python3 -m venv --system-site-packages .venv
@@ -64,8 +66,8 @@ Run from the repository root with a new `--work` directory outside the checkout.
 Inputs download automatically; Docker demos also build the image automatically.
 
 ```bash
-python3 demo/run.py --demo b2 --work /absolute/path/to/b2-demo
 python3 demo/run.py --demo room --work /absolute/path/to/room-demo
+python3 demo/run.py --demo b2 --work /absolute/path/to/b2-demo
 ```
 
 For a native build, add `--native`. Open `<work>/results/index.html` for map
@@ -73,11 +75,12 @@ comparisons or `<work>/results/demo.gif` for the animation.
 
 | Demo | Input | Submaps | Backend | Display grid |
 | --- | --- | ---: | --- | --- |
+| room | 90 synthetic scans; imposed submap frame errors; evaluation GT | 3 | `globalized_inverse` | 0.05 m |
 | b2 | 51,833 MultiEchoLaserScan frames; Cartographer initial poses | 35 | `globalized_inverse` | 0.1 m |
-| room | 60 synthetic scans with initial poses and evaluation GT | 3 | `matlab_inverse` | 0.05 m |
 
-The [demo input archives](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.0)
-contain room data or b2 preparation metadata. The b2 bag downloads from the
+The room [input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.2)
+and [b2 preparation archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.0)
+download automatically. The b2 bag comes from the
 [Cartographer data provider](https://google-cartographer-ros.readthedocs.io/en/latest/data.html).
 See [dataset details and cached-download options](docs/DATASETS.md).
 
@@ -89,7 +92,6 @@ YAML paths resolve relative to the configuration file.
 | Input | Profile | Required settings |
 | --- | --- | --- |
 | TXT | `txt.yaml` | `input.dataset`; scan angles and range limits |
-| MATLAB | `simulation.yaml` | `input.mat`; field names |
 | LaserScan / MultiEchoLaserScan bag | `rosbag_laserscan.yaml` | Bag path and topic names |
 | PointCloud2 bag | `rosbag_pointcloud.yaml` | Topics, projection frame and height interval |
 | Local grids | [Submap manifest](docs/CONFIGURATION.md#prebuilt-submaps) | Grid files and initial frame poses |
@@ -113,7 +115,7 @@ bash tools/occupancy-joining run --config /absolute/path/to/sequence.yaml \
 
 Set `OCCUPANCY_JOINING_WORKSPACE` to choose the Docker output root. Additional
 input folders can be mounted with `--mount-input /absolute/path` before `run`.
-See [configuration](docs/CONFIGURATION.md) for odometry, MATLAB fields, submap
+See [configuration](docs/CONFIGURATION.md) for odometry, submap
 partitioning and optimizer settings, and [method](docs/METHOD.md) for the two backends.
 
 ## RViz

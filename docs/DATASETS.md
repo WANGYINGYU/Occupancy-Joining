@@ -5,9 +5,17 @@ Docker or the sourced native build. Each archive includes `DATA_NOTICE.txt`.
 
 ## Room
 
-60 scans, 361 beams and three temporal submaps. Inputs contain perturbed
-sensor poses and separate evaluation GT. The optimizer grid is 0.15 m;
-the raw-scan display grid is 0.05 m.
+90 ray-cast scans, 720 beams and three overlapping submaps of an asymmetric
+room. Each submap contains the same 30-pose loop with exact internal geometry.
+The three initial world-frame biases are `[0,0,0]`, `[0.65,-0.45,0.06]` and
+`[-0.55,0.5,-0.05]` in metres/radians. The first submap fixes the gauge;
+`GT.txt` is used only to evaluate the sensor trajectory.
+
+This controlled alignment example uses `globalized_inverse`, continuation
+`[8,4,2,1,0]`, a 70-solve limit, 0.1 m local/global grids and 0.05 m raw-ray
+display grids. The animation follows the actual committed frame poses.
+
+Regenerate the versioned TXT inputs with:
 
 ```bash
 python3 demo/generate_room.py --output /absolute/new/room-inputs
@@ -50,6 +58,8 @@ python3 demo/animate.py --result /absolute/b2-demo/results \
   --output /absolute/b2-demo/results/demo.gif --roi 50 150 -20 30
 ```
 
-The GIF uses recorded submap updates with fixed map extents and a fixed detail
-window, followed by the three exported occupancy grids. `--frames` controls
+The GIF uses consistently colored local occupied cells, recorded submap updates,
+fixed map extents and a fixed detail window. It ends with the three exported
+grayscale occupancy grids. When evaluation GT is present, it displays pose RMSE
+in the fixed input gauge. `--frames` controls
 the number of recorded updates shown.

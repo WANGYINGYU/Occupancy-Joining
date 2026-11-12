@@ -1,10 +1,10 @@
 {
-  "name": "Independent synthetic room",
-  "frames": 60,
+  "name": "Synthetic submap alignment",
+  "frames": 90,
   "kind": "synthetic",
-  "archive_name": "Occupancy_Joining_Room_v0.1.0.tar.gz",
-  "archive_bytes": 193340,
-  "archive_sha256": "1a2ef6d9439fccca66819b472e33404ba93c4f53262e5af0ced03609b48c90fc",
-  "archive_unpacked_bytes": 417020,
-  "download_url": "https://github.com/WANGYINGYU/Occupancy-Joining/releases/download/v0.1.0/Occupancy_Joining_Room_v0.1.0.tar.gz"
+  "archive_name": "Occupancy_Joining_Room_v0.1.2.tar.gz",
+  "archive_bytes": 552851,
+  "archive_sha256": "8a4f24e0b9e4081183a07ba21fc162011312821b28730d181691e2b884babb0f",
+  "archive_unpacked_bytes": 1235747,
+  "download_url": "https://github.com/WANGYINGYU/Occupancy-Joining/releases/download/v0.1.2/Occupancy_Joining_Room_v0.1.2.tar.gz"
 }

@@ -4,7 +4,7 @@ All numerical values use metres and radians. YAML paths are relative to the
 file; CLI paths are relative to the caller. Unknown keys are rejected. Ordinary
 input configuration is in `src/occupancy_joining/config/`.
 
-## Text and MATLAB
+## Text
 
 TXT input accepts `Range.txt` plus absolute sensor-to-world `Pose.txt` rows
 `x y yaw`. Alternatively, `Odom.txt` contains the absolute first pose followed
@@ -14,16 +14,6 @@ by SE(2) increments expressed in the preceding sensor frame. Optional
 `input.start`, `stride` and `max_scans` select rows. Set `angle_min`,
 `angle_max`, `min_range` and `max_range` for the actual sensor. Timestamps are
 not required for joining prepared TXT poses.
-
-MAT v5/v7 and v7.3 inputs use SciPy/h5py. Copy `simulation.yaml` and set
-`input.mat`. Configure `mat_range_key`, `mat_pose_key` and `mat_odom_key` for
-other field names. The default `pose_source: odometry` initializes from
-odometry. Ground-truth poses can be supplied separately for evaluation.
-
-```bash
-bash tools/occupancy-joining run --config /absolute/simulation.yaml \
-  --mat /absolute/sequence.mat --output /absolute/results
-```
 
 ## Bags
 

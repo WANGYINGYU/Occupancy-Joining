@@ -16,7 +16,7 @@ INPUT_OPTIONS = {
     '--dataset', '--bag', '--poses', '--ranges', '--odom', '--timestamps',
     '--manifest', '--config', '--backend-config', '--slam-config', '--backend',
     '--result', '--initial', '--source', '--converted', '--samples', '--results',
-    '--maps', '--ground-truth', '--indices', '--mat', '--graph-poses',
+    '--maps', '--ground-truth', '--indices', '--graph-poses',
 }
 
 
