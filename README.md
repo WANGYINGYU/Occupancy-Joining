@@ -96,6 +96,8 @@ python3 demo/run.py --native --demo room --work /absolute/path/to/room-demo-nati
 ```
 
 This independent 60-scan example is a functional demonstration, not a paper benchmark.
+Its comparison page reports synthetic GT metrics. Floating-point changes to grid
+origins/support can change its optimization path; it is not an accuracy guarantee.
 
 ### 3.2 Museum b2
 
