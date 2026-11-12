@@ -1,0 +1,10 @@
+{
+  "name": "Intel Research Lab",
+  "frames": 13631,
+  "kind": "real",
+  "archive_name": "Occupancy_Joining_Intel_v0.1.4.tar.gz",
+  "archive_bytes": 2905431,
+  "archive_sha256": "cb08bc9b9b4fa352cfaa94b1c518cfaccd3adc9ca1ed0d870622740c60702b7d",
+  "archive_unpacked_bytes": 13707390,
+  "download_url": "https://github.com/WANGYINGYU/Occupancy-Joining/releases/download/v0.1.4/Occupancy_Joining_Intel_v0.1.4.tar.gz"
+}

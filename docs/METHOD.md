@@ -12,8 +12,8 @@ The first submap frame fixes the gauge; relative poses inside submaps stay fixed
   MATLAB cell-coordinate approximation; `inverse_gradient: metric` includes
   the inverse local-resolution chain factor.
 - `globalized_inverse`: count-supported local interpolation, conditional map
-  elimination and accepted-step control. The b2 demo uses this backend with
-  `continuation_sigmas: [0]`.
+  elimination and accepted-step control. The demos use this backend with
+  `continuation_sigmas: [8, 4, 2, 1, 0]`.
 
 N and robust weights remain fixed within each linearization. N is recomputed
 after pose updates; its pose derivative is omitted.

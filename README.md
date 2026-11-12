@@ -6,12 +6,18 @@ Yingyu Wang, Liang Zhao, and Shoudong Huang
 ROS 2 / C++17 implementation for jointly optimizing a global 2D occupancy map
 and local submap frames using global-to-local projection and a pose-only Schur solve.
 
-![Submap joining on the real b2 museum dataset](media/b2.gif)
+![Submap joining on the Intel Research Lab dataset](media/intel.gif)
 
-**Museum b2 refinement:** 51,833 scans and 35 submaps, initialized with
-Cartographer's final globally optimized poses. Median occupied-cell displacement
-after joining is 0.069 m. The animation includes the initial, directly optimized
-and pose-rebuilt occupancy maps.
+**Intel Research Lab:** 13,631 real laser scans and 14 submaps. The animation
+shows the initial alignment, recorded optimizer updates and the three output maps
+in a fixed whole-map view. Initial poses use local scan tracking.
+
+Independent evaluation against 2,984 manually matched relative-pose references:
+
+| State | Translation RMSE [m] | Rotation RMSE [deg] |
+| --- | ---: | ---: |
+| Initial | 1.327 | 2.311 |
+| Optimized | 0.586 | 2.329 |
 
 ![Joining three initially displaced synthetic submaps](media/room.gif)
 
@@ -73,7 +79,7 @@ Inputs download automatically; Docker demos also build the image automatically.
 
 ```bash
 python3 demo/run.py --demo room --work /absolute/path/to/room-demo
-python3 demo/run.py --demo b2 --work /absolute/path/to/b2-demo
+python3 demo/run.py --demo intel --work /absolute/path/to/intel-demo
 ```
 
 For a native build, add `--native`. Open `<work>/results/index.html` for map
@@ -82,13 +88,12 @@ comparisons or `<work>/results/demo.gif` for the animation.
 | Demo | Input | Submaps | Backend | Display grid |
 | --- | --- | ---: | --- | --- |
 | room | 90 synthetic scans; imposed submap frame errors; evaluation GT | 3 | `globalized_inverse` | 0.05 m |
-| b2 | 51,833 MultiEchoLaserScan frames; Cartographer initial poses | 35 | `globalized_inverse` | 0.1 m |
+| intel | 13,631 real laser scans; local tracking poses; manual evaluation relations | 14 | `globalized_inverse` | 0.05 m |
 
-The room [input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.2)
-and [b2 preparation archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.0)
-download automatically. The b2 bag comes from the
-[Cartographer data provider](https://google-cartographer-ros.readthedocs.io/en/latest/data.html).
-See [dataset details and cached-download options](docs/DATASETS.md).
+The [Intel input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.4)
+and [room input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.2)
+include the inputs, parameters and dataset notices. See
+[dataset preparation and cached downloads](docs/DATASETS.md).
 
 ## Use Your Own Data
 

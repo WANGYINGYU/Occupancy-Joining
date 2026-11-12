@@ -13,6 +13,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src/occupancy_joining/scripts'))
 from grid_io import read_grid, probabilities
 from geometry import se2, pose2
+from relations import Relations
 
 
 def font(size):
@@ -180,6 +181,15 @@ def main():
     occupied = [occupied_points(grid) for grid in locals_]
     bounds = whole_bounds(locals_, poses, grids)
     errors = evaluation_rmse(result, cfg['submaps'], poses)
+    relation_errors = None
+    if (result / 'reference_relations.txt').is_file():
+        reference = Relations(result / 'reference_timestamps.txt', result / 'reference_relations.txt')
+        relation_errors = reference.history(np.loadtxt(result / 'input_poses.txt'), cfg['submaps'], poses)
+        saved = json.loads((result / 'relative_pose_metrics.json').read_text())
+        for actual, state in [(relation_errors[0], 'initial'), (relation_errors[-1], 'optimized')]:
+            for key in ['translation_m', 'rotation_deg']:
+                if not np.isclose(actual[key]['rmse'], saved[state][key]['rmse'], rtol=1e-10, atol=1e-12):
+                    raise ValueError('Animation relative-pose metric differs from the saved evaluation')
     box = (24, 94, 1152, 628)
 
     def canvas_for():
@@ -198,6 +208,9 @@ def main():
         footer = f'{len(locals_)} local submaps | fixed whole-map view'
         if errors is not None:
             footer += f' | Pose RMSE (evaluation GT): {distance_label(errors[index])}'
+        if relation_errors is not None:
+            metric = relation_errors[index]
+            footer += f' | Relation RMSE: {metric["translation_m"]["rmse"]:.3f} m / {metric["rotation_deg"]["rmse"]:.3f} deg'
         draw.text((24, 746), footer, fill=(35, 35, 35), font=font(18))
         frames.append(indexed(canvas))
         durations.append(2000 if index == 0 else (2500 if index == selected[-1] else 120))
