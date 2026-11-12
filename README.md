@@ -8,9 +8,10 @@ and local submap frames using global-to-local projection and a pose-only Schur s
 
 ![Submap joining on the real b2 museum dataset](media/b2.gif)
 
-**Museum b2:** 51,833 scans and 35 submaps, initialized with Cartographer poses.
-The animation shows recorded C++ joining updates and the initial, directly
-optimized and pose-rebuilt occupancy maps.
+**Museum b2 refinement:** 51,833 scans and 35 submaps, initialized with
+Cartographer's final globally optimized poses. Median occupied-cell displacement
+after joining is 0.069 m. The animation includes the initial, directly optimized
+and pose-rebuilt occupancy maps.
 
 ![Joining three initially displaced synthetic submaps](media/room.gif)
 
