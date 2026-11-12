@@ -1,0 +1,17 @@
+{
+  "name": "Museum b2, complete prepared sequence",
+  "frames": 51833,
+  "kind": "real",
+  "raw": {
+    "name": "b2-2015-07-07-11-27-05.bag",
+    "url": "https://storage.googleapis.com/cartographer-public-data/bags/backpack_2d/b2-2015-07-07-11-27-05.bag",
+    "bytes": 361070920,
+    "sha256": "4fe21fd9b32f6024f71fed21193f14858202a0757092e9e28080aa77ca25b146",
+    "topic": "horizontal_laser_2d"
+  },
+  "archive_name": "Occupancy_Joining_B2_Inputs_v0.1.0.tar.gz",
+  "archive_bytes": 1654540,
+  "archive_sha256": "7fc878877446c963313b7e7dfa4bc0c60fa2d2267c1c6653f3b8dc374501d457",
+  "archive_unpacked_bytes": 4086637,
+  "download_url": "https://github.com/WANGYINGYU/Occupancy-Joining/releases/download/v0.1.0/Occupancy_Joining_B2_Inputs_v0.1.0.tar.gz"
+}

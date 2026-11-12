@@ -1,0 +1,21 @@
+input:
+  type: bag
+bag:
+  scan_topic: /scan
+  odom_source: auto
+  odom_topic: /odom
+  tf_topic: /tf
+  tf_static_topic: /tf_static
+  odom_frame: odom
+  min_range: 0.1
+  max_range: 30.0
+  slam_config: slam_toolbox.yaml
+submaps:
+  scans_per_submap: 100
+  local_resolution: 0.1
+optimizer:
+  model: matlab_inverse
+  global_resolution: 0.15
+  max_iterations: 70
+display:
+  resolution: 0.05

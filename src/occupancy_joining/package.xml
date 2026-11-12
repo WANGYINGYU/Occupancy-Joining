@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>occupancy_joining</name><version>0.1.0</version>
+  <description>2D grid-based submap joining with a paper pose-only GN backend and MATLAB reference adapter.</description>
+  <maintainer email="noreply@users.noreply.github.com">Occupancy Joining contributors</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>eigen</depend><depend>yaml-cpp</depend>
+  <exec_depend>rclpy</exec_depend><exec_depend>nav_msgs</exec_depend><exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend><exec_depend>tf2_msgs</exec_depend><depend>slam_toolbox</depend><depend>rclcpp_lifecycle</depend><depend>boost</depend><depend>libceres-dev</depend>
+  <depend>rviz_default_plugins</depend><depend>pluginlib</depend><exec_depend>rviz2</exec_depend><exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-h5py</exec_depend><exec_depend>python3-pil</exec_depend>
+  <exec_depend>python3-numpy</exec_depend><exec_depend>python3-scipy</exec_depend><exec_depend>python3-yaml</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

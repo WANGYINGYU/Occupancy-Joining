@@ -1,0 +1,10 @@
+{
+  "name": "Independent synthetic room",
+  "frames": 60,
+  "kind": "synthetic",
+  "archive_name": "Occupancy_Joining_Room_v0.1.0.tar.gz",
+  "archive_bytes": 193340,
+  "archive_sha256": "1a2ef6d9439fccca66819b472e33404ba93c4f53262e5af0ced03609b48c90fc",
+  "archive_unpacked_bytes": 417020,
+  "download_url": "https://github.com/WANGYINGYU/Occupancy-Joining/releases/download/v0.1.0/Occupancy_Joining_Room_v0.1.0.tar.gz"
+}

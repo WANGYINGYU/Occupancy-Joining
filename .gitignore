@@ -1,0 +1,13 @@
+build/
+install/
+log/
+.venv/
+__pycache__/
+*.pyc
+data/
+results/
+*.bag
+*.db3
+*.mcap
+*.mat
+*.tar.gz

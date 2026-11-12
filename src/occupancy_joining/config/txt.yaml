@@ -1,0 +1,17 @@
+input:
+  type: txt
+  dataset: null
+  angle_min: -2.356194490192345
+  angle_max: 2.356194490192345
+  min_range: 0.1
+  max_range: 30.0
+submaps:
+  scans_per_submap: 1000
+  overlap: 0
+  local_resolution: 0.1
+optimizer:
+  model: matlab_inverse
+  global_resolution: 0.1
+  max_iterations: 70
+display:
+  resolution: 0.05

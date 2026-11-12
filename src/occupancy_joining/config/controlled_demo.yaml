@@ -1,0 +1,22 @@
+input:
+  type: mat
+  mat: null
+  pose_source: groundtruth
+submaps:
+  scans_per_submap: 1000
+  local_resolution: 0.1
+  anchor_noise_translation: 1.0
+  anchor_noise_rotation: 0.1
+  seed: 0
+optimizer:
+  model: matlab_inverse
+  global_resolution: 0.1
+  inverse_gradient: matlab
+  huber_delta: 1.0
+  inverse_delete_threshold: 0.5
+  count_delete_threshold: 0.001
+  n_smoothing: 0.000001
+  tolerance: 0.0000001
+  max_iterations: 70
+display:
+  resolution: 0.05

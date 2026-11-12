@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -eo pipefail
+project_dir="$(cd "$(dirname "$0")/.." && pwd)"
+mode="${1:---help}"
+if [[ "$mode" == --help ]]; then echo 'Usage: occupancy-joining {run|initialize|view|inspect} [options]'; exit 0; fi
+shift
+if [[ -f "$project_dir/install/setup.bash" ]]; then source "$project_dir/install/setup.bash"; fi
+case "$mode" in
+ initialize) exec python3 "$project_dir/src/occupancy_joining/scripts/initialize_txt.py" "$@" ;;
+ run) exec python3 "$project_dir/src/occupancy_joining/scripts/joining_pipeline.py" "$@" ;;
+ view) exec python3 "$project_dir/src/occupancy_joining/scripts/joining_viewer.py" "$@" ;;
+ inspect) exec python3 "$project_dir/src/occupancy_joining/scripts/inspect_bag.py" "$@" ;;
+ *) echo "Unknown command: $mode" >&2; exit 2 ;;
+esac

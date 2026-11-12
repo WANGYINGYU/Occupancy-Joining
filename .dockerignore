@@ -1,0 +1,14 @@
+.git
+build
+install
+log
+.venv
+**/__pycache__
+**/*.pyc
+*.mat
+data
+results
+*.bag
+*.db3
+*.mcap
+*.tar.gz

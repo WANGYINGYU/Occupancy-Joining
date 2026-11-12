@@ -1,0 +1,18 @@
+# Input-independent spatial limits; supply sensor/input paths in your own profile.
+# They improve the tested b2 partition but do not by themselves guarantee alignment.
+submaps:
+  partition: spatial
+  scans_per_submap: 1000
+  max_extent: 30.0
+  max_travel: 60.0
+  overlap_travel: 6.0
+  local_resolution: 0.5
+  cell_update_policy: hit_priority
+optimizer:
+  model: globalized_inverse
+  global_resolution: 0.5
+  max_cells: 8000000
+  continuation_sigmas: [0]
+display:
+  resolution: 0.1
+  cell_update_policy: hit_priority
