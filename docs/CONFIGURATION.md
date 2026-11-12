@@ -18,9 +18,7 @@ not required for joining prepared TXT poses.
 MAT v5/v7 and v7.3 inputs use SciPy/h5py. Copy `simulation.yaml` and set
 `input.mat`. Configure `mat_range_key`, `mat_pose_key` and `mat_odom_key` for
 other field names. The default `pose_source: odometry` initializes from
-odometry. `controlled_demo.yaml` explicitly selects `groundtruth` inside
-submaps and seeded submap-anchor perturbations. Label that as a controlled
-experiment; it is not a noisy-odometry benchmark.
+odometry. Ground-truth poses can be supplied separately for evaluation.
 
 ```bash
 bash tools/occupancy-joining run --config /absolute/simulation.yaml \
@@ -36,13 +34,11 @@ MultiEchoLaserScan uses the first recorded echo; an empty echo is missing.
 
 `odom_source` selects automatic, recorded odometry, TF or scan-matching motion
 priors. `projection_frame`, `min_height`, `max_height` and `bins` control the
-PointCloud2-to-2D conversion. A point cloud is not interpreted as a 3D joining
-problem. `slam_config` controls the ROS 2 frontend.
+PointCloud2-to-2D conversion. `slam_config` controls the ROS 2 frontend.
 
 The default pose estimate is causal. Set `bag.pose_estimate: final_graph` to
 extract the final serialized `slam_toolbox` graph. Missing timestamp-associated
-poses are excluded and reported, not fabricated. Loop closure does not guarantee
-an accuracy improvement. The final-graph helper requires the `slam_toolbox`
+poses are excluded and reported. The final-graph helper requires the `slam_toolbox`
 development libraries included by the documented Docker/native dependencies.
 
 ## Submap partitioning
@@ -80,7 +76,7 @@ submaps:
 Grid files start with `width height resolution origin_x origin_y`, followed by
 `width*height` rows of `log_odds_sum hit_count`, in row-major order. Counts must
 be nonnegative. Vertex `(x,y)` is `origin + resolution*[x,y]`; this is a nodal
-grid, not a cell-corner image convention. Grid paths resolve relative to the
+grid. Grid paths resolve relative to the
 manifest. Settings order is defaults, manifest optimizer, explicitly supplied
 YAML optimizer, then CLI overrides. Raw-ray reconstruction is unavailable if
 only local grids are supplied.
@@ -90,14 +86,14 @@ only local grids are supplied.
 `optimizer.global_resolution` and `submaps.local_resolution` define numerical
 lattices. `display.resolution` independently controls initial/final-pose raw-ray
 map reconstruction. `max_cells` bounds dense allocation. `max_iterations` is a
-budget; iteration-limit completion differs from small-step convergence.
+solve budget.
 
 The default is `model: matlab_inverse`, Huber delta 1, inverse raw-value cutoff
 0.5, count cutoff 0.001, N smoothing 1e-6 and the MATLAB cell-coordinate gradient
 approximation. `inverse_gradient: metric` explicitly changes the chain factor.
 The optional `globalized_inverse` model adds accepted-step control; the b2 preset
 uses no continuation (`continuation_sigmas: [0]`). Numerical definitions and
-other retained reference models are summarized in [method](METHOD.md).
+the count/gradient conventions are summarized in [method](METHOD.md).
 
 ## Optional corrected TXT trajectories
 
@@ -115,14 +111,4 @@ bash tools/occupancy-joining run --config /absolute/initialized/joining.yaml \
 
 The generated recipe resets row selection for the exported subset and disables
 GT evaluation. Without `--graph-poses`, the initializer runs `slam_toolbox`;
-`--pose-estimate final_graph` requests the final graph. These are input adapters,
-not automatic loop-verification or accuracy guarantees.
-
-`joining_refine_slam_graph` is an optional native graph helper for explicitly
-provided relative SE(2) constraints; run it with `--help`. It retains native
-graph edges. It expects the virtual scan sensor frame to coincide with the
-base frame and rejects incompatible extrinsics, duplicate constraints and
-nonpositive information matrices. The caller remains responsible for validating
-physical correspondences. Constraint rows contain source and target node IDs,
-`dx dy yaw`, then the nine row-major coefficients of a symmetric positive-definite
-3x3 information matrix. The measured transform is `inverse(T_source)*T_target`.
+`--pose-estimate final_graph` requests the final graph. The exported configuration can be used directly by the joining backend.

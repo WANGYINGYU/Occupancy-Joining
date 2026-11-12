@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Prepare the published demo inputs, run the unchanged backend, and export maps."""
+"""Prepare demo inputs and export maps and animation."""
 import argparse,json,subprocess,sys,time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np,yaml
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src/occupancy_joining/scripts'))
-from geometry import se2,pose2
-from grid_io import build_map,write_grid,read_grid,export_image
+from grid_io import build_map,write_grid,export_image
 from joining_pipeline import trajectory
 
 def fixed_grid(ranges,poses,angles,spec,min_range,max_range):
@@ -60,13 +59,16 @@ def main():
     images=[]
     for state,title in [('initial','Initial'),('optimized','Direct optimized map'),('reintegrated','Rebuilt with optimized poses')]:
         folder=a.output/'maps'/state;png=f'maps/{state}/'+('display/map.png' if (folder/'display/map.png').exists() else 'map.png');images.append(f'<section><h2>{title}</h2><a href="{png}"><img src="{png}" alt="{title}"></a></section>')
-    note='Synthetic functional example; ground truth is evaluation-only.' if a.demo=='room' else 'Complete 51,833-scan prepared-input example. Supplied range-only Cartographer initialization; explicit globalized_inverse preset. No ground truth or complete-overlap guarantee.'
+    note='60 scans, 361 beams and 3 submaps.' if a.demo=='room' else '51,833 scans, 35 submaps and 0.1 m map resolution. Cartographer initialization; globalized_inverse backend.'
     metric_html=''
     metrics=json.loads((a.output/'metrics.json').read_text())
     if metrics:
         rows=''.join(f'<tr><td>{state}</td><td>{value["translation_rmse_m"]:.6f}</td><td>{value["yaw_rmse_rad"]:.6f}</td></tr>' for state,value in metrics.items())
         metric_html='<h2>Synthetic GT evaluation</h2><table><tr><th>State</th><th>Translation RMSE [m]</th><th>Yaw RMSE [rad]</th></tr>'+rows+'</table>'
-    (a.output/'index.html').write_text('<!doctype html><html lang="en"><meta charset="utf-8"><title>Occupancy Joining demo</title><style>body{font:16px/1.6 sans-serif;margin:24px}main{display:flex;gap:18px}section{flex:1;min-width:0}img{width:100%;height:auto}h2{font-size:18px}</style><h1>Occupancy Joining: '+a.demo+'</h1><p>'+note+'</p><p>Maps share the same world frame. Open individual images at full resolution, or use the ROS 2 RViz Map topic selector.</p><main>'+''.join(images)+'</main>'+metric_html+'</html>')
+    (a.output/'index.html').write_text('<!doctype html><html lang="en"><meta charset="utf-8"><title>Occupancy Joining demo</title><style>body{font:16px/1.6 sans-serif;margin:24px}main{display:flex;gap:18px}section{flex:1;min-width:0}img{width:100%;height:auto}h2{font-size:18px}</style><h1>Occupancy Joining: '+a.demo+'</h1><p>'+note+'</p><p>Maps share the same world frame. Open individual images at full resolution, or use the ROS 2 RViz Map topic selector.</p><main>'+''.join(images)+'</main><p><a href="demo.gif">Animated submap joining</a></p>'+metric_html+'</html>')
+    animation=[sys.executable,str(ROOT/'demo/animate.py'),'--result',str(a.output),'--output',str(a.output/'demo.gif')]
+    if a.demo=='b2':animation+=['--roi','50','150','-20','30','--title','Grid-based Submap Joining | Museum b2']
+    subprocess.run(animation,check=True)
     (a.output/'demo.json').write_text(json.dumps(dict(demo=a.demo,seconds=time.monotonic()-started,frames=60 if a.demo=='room' else 51833,notes=note,optimizer_source='demo.yaml' if a.demo=='room' else 'preparation.json',display_resolution=.05 if a.demo=='room' else .1),indent=2));print(a.output/'index.html',flush=True)
 
 if __name__=='__main__':main()

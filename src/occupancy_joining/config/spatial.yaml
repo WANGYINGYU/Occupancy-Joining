@@ -1,5 +1,4 @@
-# Input-independent spatial limits; supply sensor/input paths in your own profile.
-# They improve the tested b2 partition but do not by themselves guarantee alignment.
+# Spatial partitioning by map extent and travel distance.
 submaps:
   partition: spatial
   scans_per_submap: 1000

@@ -9,12 +9,8 @@ ROS 2, slam_toolbox, RViz, Ceres and other external dependencies retain their
 respective licenses. They are installed by the dependency instructions or
 Dockerfile; the project license does not relicense these dependencies.
 
-Third-party MATLAB source is not included. The numerical implementation uses
-the documented SE(2), interpolation and submap-joining equations.
-
 The room demo is generated independently. The b2 preparation archive contains
 project-generated initialization/partition artifacts, not the raw sensor bag.
 The original Cartographer bag is obtained directly from its provider and remains
 subject to that provider's dataset terms. See `DATA_NOTICE.txt` in each input
-archive and `docs/DATASETS.md`. The code license grants no additional raw-data
-redistribution rights.
+archive and `docs/DATASETS.md`.

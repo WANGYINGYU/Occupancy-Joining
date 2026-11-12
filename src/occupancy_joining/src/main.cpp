@@ -6,20 +6,18 @@
 #include <iostream>
 using namespace joining;namespace fs=std::filesystem;
 int main(int argc,char** argv){fs::path output;try{
-  if(argc==2&&std::string(argv[1])=="--help"){std::cout<<"joining_backend --manifest submaps.yaml --output directory [--trace directory] [--trace-stride updates]\n";return 0;}
-  fs::path manifest,trace;int trace_stride=1;for(int i=1;i<argc;++i){std::string key=argv[i];if(i+1>=argc)throw std::runtime_error("Missing option value");if(key=="--manifest")manifest=argv[++i];else if(key=="--output")output=argv[++i];else if(key=="--trace")trace=argv[++i];else if(key=="--trace-stride")trace_stride=std::stoi(argv[++i]);else throw std::runtime_error("Unknown option "+key);}
+  if(argc==2&&std::string(argv[1])=="--help"){std::cout<<"joining_backend --manifest submaps.yaml --output directory\n";return 0;}
+  fs::path manifest;for(int i=1;i<argc;++i){std::string key=argv[i];if(i+1>=argc)throw std::runtime_error("Missing option value");if(key=="--manifest")manifest=argv[++i];else if(key=="--output")output=argv[++i];else throw std::runtime_error("Unknown option "+key);}
   if(manifest.empty()||output.empty())throw std::runtime_error("--manifest and --output required");
   if(fs::exists(output)&&!fs::is_empty(output))throw std::runtime_error("Output must be empty");fs::create_directories(output);
   auto cfg=YAML::LoadFile(manifest.string());Options o;auto p=cfg["optimizer"];
 #define SET(name) if(p&&p[#name])o.name=p[#name].as<decltype(o.name)>();
-  SET(model) SET(max_iterations) SET(tolerance) SET(global_resolution) SET(padding) SET(minimum_count) SET(max_cells) SET(map_regularization) SET(huber_delta) SET(n_smoothing) SET(inverse_delete_threshold) SET(count_delete_threshold) SET(inverse_gradient) SET(max_backtracks) SET(continuation_sigmas)
+  SET(model) SET(max_iterations) SET(tolerance) SET(global_resolution) SET(padding) SET(minimum_count) SET(max_cells) SET(huber_delta) SET(n_smoothing) SET(inverse_delete_threshold) SET(count_delete_threshold) SET(inverse_gradient) SET(max_backtracks) SET(continuation_sigmas)
 #undef SET
-  if((o.model!="paper"&&o.model!="matlab"&&o.model!="matlab_inverse"&&o.model!="supported_inverse"&&o.model!="observed_inverse"&&o.model!="information_inverse"&&o.model!="globalized_inverse")||(o.inverse_gradient!="matlab"&&o.inverse_gradient!="metric")||trace_stride<1||o.max_iterations<0||!std::isfinite(o.tolerance)||o.tolerance<0||!std::isfinite(o.global_resolution)||o.global_resolution<=0||!std::isfinite(o.padding)||o.padding<=0||o.max_cells<4||!std::isfinite(o.minimum_count)||o.minimum_count<0||!std::isfinite(o.huber_delta)||o.huber_delta<=0||!std::isfinite(o.map_regularization)||o.map_regularization<=0||!std::isfinite(o.n_smoothing)||o.n_smoothing<0||!std::isfinite(o.inverse_delete_threshold)||o.inverse_delete_threshold<0||!std::isfinite(o.count_delete_threshold)||o.count_delete_threshold<0)throw std::runtime_error("Invalid optimizer options");
+  if((o.model!="matlab_inverse"&&o.model!="globalized_inverse")||(o.inverse_gradient!="matlab"&&o.inverse_gradient!="metric")||o.max_iterations<0||!std::isfinite(o.tolerance)||o.tolerance<0||!std::isfinite(o.global_resolution)||o.global_resolution<=0||!std::isfinite(o.padding)||o.padding<=0||o.max_cells<4||!std::isfinite(o.minimum_count)||o.minimum_count<0||!std::isfinite(o.huber_delta)||o.huber_delta<=0||!std::isfinite(o.n_smoothing)||o.n_smoothing<0||!std::isfinite(o.inverse_delete_threshold)||o.inverse_delete_threshold<0||!std::isfinite(o.count_delete_threshold)||o.count_delete_threshold<0)throw std::runtime_error("Invalid optimizer options");
   if(o.max_backtracks<1||o.max_backtracks>30||o.continuation_sigmas.empty()||o.continuation_sigmas.back()!=0)throw std::runtime_error("Invalid globalization schedule");
   for(double sigma:o.continuation_sigmas)if(!std::isfinite(sigma)||sigma<0||sigma>128)throw std::runtime_error("Invalid continuation sigma");
   std::vector<Grid> grids;std::vector<Pose> poses;for(const auto& item:cfg["submaps"]){fs::path path=item["grid"].as<std::string>();if(path.is_relative())path=manifest.parent_path()/path;grids.push_back(read_grid(path.string()));auto v=item["pose"].as<std::vector<double>>();if(v.size()!=3)throw std::runtime_error("Pose needs x y yaw");poses.emplace_back(v[0],v[1],v[2]);if(!poses.back().allFinite())throw std::runtime_error("Nonfinite pose");}
-  if(!trace.empty()&&fs::exists(trace)&&!fs::is_empty(trace))throw std::runtime_error("Trace directory must be empty");
-  o.trace_directory=trace.string();o.trace_stride=trace_stride;
   auto r=optimize(grids,poses,o);
   for(const auto& s:{"initial","optimized","reintegrated"})fs::create_directory(output/s);
   write_grid(r.initial,(output/"initial/map.grid").string());write_grid(r.optimized,(output/"optimized/map.grid").string());write_grid(r.reintegrated,(output/"reintegrated/map.grid").string());

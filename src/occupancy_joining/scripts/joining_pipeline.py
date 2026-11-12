@@ -10,7 +10,7 @@ from project_paths import ROOT
 
 DEFAULTS=dict(input=dict(type='txt',dataset=None,ranges=None,poses=None,odom=None,mat=None,pose_source='odometry',start=0,stride=1,max_scans=0,angle_min=-2.356194490192345,angle_max=2.356194490192345,min_range=.1,max_range=30.,scan_period=.1,mat_range_key='range',mat_pose_key='groundtruth',mat_odom_key='odom',ground_truth=None),
  submaps=dict(partition='frames',max_extent=30.,max_travel=60.,overlap_travel=6.,scans_per_submap=1000,overlap=0,local_resolution=.1,cell_update_policy='first_sample',anchor_poses=None,anchor_noise_translation=0.,anchor_noise_rotation=0.,seed=0),
- optimizer=dict(model='matlab_inverse',max_iterations=70,tolerance=1e-7,global_resolution=.1,padding=5.,minimum_count=1e-9,max_cells=2000000,map_regularization=.001,huber_delta=1.,n_smoothing=1e-6,inverse_delete_threshold=.5,count_delete_threshold=.001,inverse_gradient='matlab',max_backtracks=10,continuation_sigmas=[0.]),
+ optimizer=dict(model='matlab_inverse',max_iterations=70,tolerance=1e-7,global_resolution=.1,padding=5.,minimum_count=1e-9,max_cells=2000000,huber_delta=1.,n_smoothing=1e-6,inverse_delete_threshold=.5,count_delete_threshold=.001,inverse_gradient='matlab',max_backtracks=10,continuation_sigmas=[0.]),
  display=dict(resolution=.05,cell_update_policy='first_sample'),bag=dict(pose_estimate='causal',graph_exporter=None,scan_topic='auto',odom_source='auto',odom_topic='/odom',tf_topic='/tf',tf_static_topic='/tf_static',odom_frame='odom',tf_max_gap=.2,projection_frame=None,min_height=-.2,max_height=.2,bins=720,icp_distance=.8,beam_stride=1,scan_stride=1,start=0,max_scans=0,min_range=.1,max_range=30.,slam_config=None,frontend_resolution=None,scan_timeout=3.,startup_timeout=30.,min_accepted_fraction=.8,domain_id=87))
 PATHS={'dataset','ranges','poses','odom','mat','anchor_poses','slam_config','graph_exporter','ground_truth'}
 
@@ -29,6 +29,8 @@ def settings(path):
 
 def manifest_optimizer(manifest_options, config_options):
     """Keep stored optimizer settings, then apply only explicitly supplied YAML keys."""
+    if isinstance(manifest_options,dict):
+        manifest_options={k:v for k,v in manifest_options.items() if k!='map_regularization'}
     if not isinstance(manifest_options,dict) or manifest_options.keys()-DEFAULTS['optimizer'].keys():
         raise ValueError('Unknown optimizer key in submap manifest')
     return dict(DEFAULTS['optimizer'],**manifest_options) | config_options
@@ -149,7 +151,7 @@ def validate(cfg):
     if s['partition']=='spatial' and (min(s['max_extent'],s['max_travel'])<=0 or not 0<=s['overlap_travel']<s['max_travel']):raise ValueError('Invalid spatial bounds/overlap')
     if s['cell_update_policy'] not in ('first_sample','hit_priority') or cfg['display']['cell_update_policy'] not in ('first_sample','hit_priority'):raise ValueError('Invalid cell update policy')
     if o['inverse_gradient'] not in ('matlab','metric'):raise ValueError('Invalid inverse gradient mode')
-    if o['model'] not in ('matlab_inverse','supported_inverse','observed_inverse','information_inverse','globalized_inverse','paper','matlab') or o['max_iterations']<0:raise ValueError('Invalid optimizer model/iteration limit')
+    if o['model'] not in ('matlab_inverse','globalized_inverse') or o['max_iterations']<0:raise ValueError('Invalid optimizer model/iteration limit')
     sigmas=o['continuation_sigmas']
     if not isinstance(o['max_backtracks'],int) or not 1<=o['max_backtracks']<=30 or not isinstance(sigmas,list) or not sigmas or sigmas[-1]!=0 or any(not isinstance(x,(int,float)) or not np.isfinite(x) or not 0<=x<=128 for x in sigmas):raise ValueError('Invalid globalization schedule')
     b=cfg['bag']

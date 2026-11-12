@@ -26,7 +26,7 @@ def parser():
         '--result /absolute/pipeline. Paths on the CLI are mounted automatically; '
         'use --mount-input for additional paths referenced inside YAML/manifests.'))
     p.add_argument('--image', default=os.environ.get('OCCUPANCY_JOINING_DOCKER_IMAGE', 'occupancy-joining:jazzy'))
-    p.add_argument('--run-name', help='Fresh experiment directory name')
+    p.add_argument('--run-name', help='New run directory name')
     p.add_argument('--mount-input', type=Path, action='append', default=[])
     p.add_argument('--gui', action='store_true', help='Forward this Linux X11/XWayland display using Mesa software rendering')
     p.add_argument('command', choices=('build', 'run', 'initialize', 'view', 'inspect', 'exec'))

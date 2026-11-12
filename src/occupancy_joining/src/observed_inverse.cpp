@@ -3,12 +3,11 @@
 
 namespace joining {
 bool interpolate_observed(const Grid& grid, const Eigen::Vector2d& point,
-                          Sample& sample, double minimum_count, bool normalized) {
+                          Sample& sample, double minimum_count) {
   if (!interpolate(grid, point, sample)) return false;
   // Occupancy zero is a valid observation. Visibility comes only from raw counts.
   for (int k = 0; k < 4; ++k)
     if (!(grid.counts[sample.ids[k]] > minimum_count)) return false;
-  if (!normalized) return true;
   double value[4];
   for (int k = 0; k < 4; ++k)
     value[k] = grid.values[sample.ids[k]] / grid.counts[sample.ids[k]];
@@ -26,24 +25,20 @@ bool interpolate_observed(const Grid& grid, const Eigen::Vector2d& point,
 
 std::vector<Row> observed_rows(const std::vector<Grid>& locals,
                                const std::vector<Pose>& poses,
-                               const Grid& global, const Options& options,
-                               bool normalized) {
+                               const Grid& global, const Options& options) {
   std::vector<Row> rows;
   std::vector<Eigen::Matrix2d> rotations;
   for (const auto& pose : poses) rotations.push_back(rotation(pose.z()).transpose());
   for (int cell = 0; cell < global.size(); ++cell) {
-    // Raw mode needs a valid count ratio. Normalized mode has no global divisor.
-    if (!normalized && global.counts[cell] <= options.minimum_count) continue;
     const Eigen::Vector2d world = global.origin + global.resolution *
         Eigen::Vector2d(cell % global.width, cell / global.width);
     for (size_t i = 0; i < locals.size(); ++i) {
       const auto& R = rotations[i];
       const Eigen::Vector2d local = R * (world - poses[i].head<2>());
       Sample sample;
-      if (!interpolate_observed(locals[i], local, sample, options.minimum_count, normalized)) continue;
-      const double amplitude = normalized ?
-          (options.model == "information_inverse" ? std::sqrt(sample.count) : sample.count) : 1.;
-      const double coefficient = normalized ? amplitude : sample.count / global.counts[cell];
+      if (!interpolate_observed(locals[i], local, sample, options.minimum_count)) continue;
+      const double amplitude = sample.count;
+      const double coefficient = amplitude;
       const double observation = amplitude * sample.value;
       const double error = coefficient * global.values[cell] - observation;
       const double scale = std::sqrt(std::abs(error) > options.huber_delta ?

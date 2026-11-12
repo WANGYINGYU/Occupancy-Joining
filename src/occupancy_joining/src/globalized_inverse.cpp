@@ -4,8 +4,6 @@
 #include <stdexcept>
 
 namespace joining {
-void inverse_trace(const Options&, int, const Grid&, const std::vector<Pose>&,
-                   const std::vector<Row>&);
 namespace {
 double huber(double error, double delta) {
   const double a = std::abs(error);
@@ -113,8 +111,6 @@ Result optimize_globalized(const std::vector<Grid>& raw, const std::vector<Pose>
       fit_robust_observed_map(state, rows, options.huber_delta);
       rows = observed_rows(locals, result.poses, state, options);
       state.counts = observation_counts(rows, state.size());
-      if (iteration == 0 || solves < 3 || solves % options.trace_stride == 0)
-        inverse_trace(options, solves, state, result.poses, rows);
       const auto delta = solve(reduce_blocks(rows, int(input.size()), state.size()));
       const double before = robust_cost(state, rows, options.huber_delta);
       bool accepted = false;
@@ -180,7 +176,6 @@ Result optimize_globalized(const std::vector<Grid>& raw, const std::vector<Pose>
   fit_robust_observed_map(field, rows, options.huber_delta);
   rows = observed_rows(raw, result.poses, field, options);
   field.counts = observation_counts(rows, field.size());
-  inverse_trace(options, solves, field, result.poses, rows);
   result.optimized = field;
   result.optimized.values.array() *= field.counts.array();
   result.reintegrated = integrate(raw, result.poses, domain);
