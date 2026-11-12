@@ -45,7 +45,7 @@ def transformed(points, poses):
     return result
 
 
-def panel(canvas, box, title, bounds, points=None, grid=None, roi=None):
+def panel(canvas, box, title, bounds, points=None, grid=None):
     x, y, width, height = box
     draw = ImageDraw.Draw(canvas)
     draw.text((x, y), title, fill=(30, 30, 30), font=font(17))
@@ -74,10 +74,6 @@ def panel(canvas, box, title, bounds, points=None, grid=None, roi=None):
         pixels[np.ix_(vy, vx)] = grid['gray'][np.ix_(iy[vy], ix[vx])][..., None]
     canvas.paste(Image.fromarray(pixels), (left, top))
     draw.rectangle((left, top, left + w, top + h), outline=(210, 210, 210))
-    if roi is not None:
-        a, b, c, d = roi
-        draw.rectangle((left + (a - xmin) * scale, top + (ymax - d) * scale,
-                        left + (b - xmin) * scale, top + (ymax - c) * scale), outline=(100, 100, 100), width=2)
 
 
 def indexed(canvas):
@@ -127,11 +123,29 @@ def distance_label(value):
     return '< 0.001 m' if value < .001 else f'{value:.3f} m'
 
 
+def grid_corners(grid):
+    y, x = np.nonzero(grid['counts'] > 0)
+    if not len(x):
+        raise ValueError('Cannot animate an unobserved map')
+    lo = grid['origin'] + (np.array([x.min(), y.min()]) - .5) * grid['resolution']
+    hi = grid['origin'] + (np.array([x.max(), y.max()]) + .5) * grid['resolution']
+    return np.array([[lo[0], lo[1]], [lo[0], hi[1]], [hi[0], lo[1]], [hi[0], hi[1]]])
+
+
+def whole_bounds(locals_, history, grids):
+    corners = [grid_corners(grid) for grid in locals_]
+    points = [np.concatenate(transformed(corners, poses)) for poses in history]
+    points += [grid_corners(grid) for grid in grids]
+    points = np.concatenate(points)
+    padding = max(.5, np.max(np.ptp(points, axis=0)) * .04)
+    lo, hi = points.min(axis=0) - padding, points.max(axis=0) + padding
+    return [lo[0], hi[0], lo[1], hi[1]]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--result', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--roi', nargs=4, type=float, metavar=('XMIN', 'XMAX', 'YMIN', 'YMAX'))
     parser.add_argument('--title', default='Grid-based Submap Joining')
     parser.add_argument('--subtitle', default='Local submap occupied cells | recorded optimizer updates')
     parser.add_argument('--frames', type=int, default=40)
@@ -164,45 +178,36 @@ def main():
         grid['gray'][grid['counts'] <= 0] = 128
         grids.append(grid)
     occupied = [occupied_points(grid) for grid in locals_]
-    initial = transformed(occupied, poses[0])
-    all_ends = np.concatenate(initial + transformed(occupied, poses[-1]))
-    padding = max(.5, np.max(np.ptp(all_ends, axis=0)) * .04)
-    lo, hi = all_ends.min(axis=0) - padding, all_ends.max(axis=0) + padding
-    whole = [lo[0], hi[0], lo[1], hi[1]]
-    roi = args.roi or [(lo[0] * 3 + hi[0]) / 4, (lo[0] + hi[0] * 3) / 4,
-                       (lo[1] * 3 + hi[1]) / 4, (lo[1] + hi[1] * 3) / 4]
-    if not np.isfinite(roi).all() or roi[0] >= roi[1] or roi[2] >= roi[3]:
-        parser.error('--roi requires finite, increasing bounds')
+    bounds = whole_bounds(locals_, poses, grids)
     errors = evaluation_rmse(result, cfg['submaps'], poses)
-    frames, durations = [], []
-    selected = np.unique(np.linspace(0, len(steps) - 1, min(args.frames, len(steps)), dtype=int))
-    for index in selected:
-        canvas = Image.new('RGB', (1200, 860), 'white')
+    box = (24, 94, 1152, 628)
+
+    def canvas_for():
+        canvas = Image.new('RGB', (1200, 780), 'white')
         draw = ImageDraw.Draw(canvas)
         draw.text((24, 14), args.title, fill=(0, 0, 0), font=font(26))
         draw.text((24, 51), args.subtitle, fill=(80, 80, 80), font=font(16))
-        for i, color in enumerate([(35, 110, 190), (225, 100, 30), (0, 155, 120)][:min(3, len(locals_))]):
-            draw.text((24 + i * 125, 73), f'Submap {i + 1}', fill=color, font=font(14))
-        current = transformed(occupied, poses[index])
-        for x, title, points in [(24, 'Before joining', initial), (620, f'Joining: update {steps[index]} / {steps[-1]}', current)]:
-            panel(canvas, (x, 90, 556, 440), title, whole, points=points, roi=roi)
-            panel(canvas, (x, 550, 556, 275), 'Central detail', roi, points=points)
+        return canvas, draw
+
+    frames, durations = [], []
+    selected = np.unique(np.linspace(0, len(steps) - 1, min(args.frames, len(steps)), dtype=int))
+    for index in selected:
+        title = 'Before joining' if index == 0 else f'Joining: recorded update {steps[index]} / {steps[-1]}'
+        canvas, draw = canvas_for()
+        panel(canvas, box, title, bounds, points=transformed(occupied, poses[index]))
+        footer = f'{len(locals_)} local submaps | fixed whole-map view'
         if errors is not None:
-            draw.text((24, 832), f'Initial pose RMSE: {distance_label(errors[0])}', fill=(35, 35, 35), font=font(18))
-            draw.text((620, 832), f'Current pose RMSE: {distance_label(errors[index])}', fill=(35, 35, 35), font=font(18))
+            footer += f' | Pose RMSE (evaluation GT): {distance_label(errors[index])}'
+        draw.text((24, 746), footer, fill=(35, 35, 35), font=font(18))
         frames.append(indexed(canvas))
-        durations.append(2000 if index == 0 else (3200 if index == selected[-1] else max(180, 2500 // len(selected))))
-    canvas = Image.new('RGB', (1200, 860), 'white')
-    draw = ImageDraw.Draw(canvas)
-    draw.text((24, 14), args.title, fill=(0, 0, 0), font=font(26))
-    draw.text((24, 51), 'Occupancy maps | same world frame and view | black occupied, white free, gray unknown', fill=(80, 80, 80), font=font(16))
-    for i, (grid, title) in enumerate(zip(grids, ['Initial', 'Optimized field', 'Rebuilt map'])):
-        x = 18 + i * 398
-        panel(canvas, (x, 92, 376, 440), title, whole, grid=grid, roi=roi)
-        panel(canvas, (x, 550, 376, 275), f'Central detail | {grid["resolution"]:g} m', roi, grid=grid)
-    if errors is not None:
-        draw.text((24, 832), f'Pose RMSE (evaluation GT): {distance_label(errors[0])} -> {distance_label(errors[-1])}', fill=(35, 35, 35), font=font(18))
-    frames.append(indexed(canvas)); durations.append(5000)
+        durations.append(2000 if index == 0 else (2500 if index == selected[-1] else 120))
+    for grid, title in zip(grids, ['Initial occupancy map', 'Direct optimized occupancy field', 'Map rebuilt with optimized poses']):
+        canvas, draw = canvas_for()
+        panel(canvas, box, title, bounds, grid=grid)
+        footer = f'{grid["resolution"]:g} m grid | black occupied, white free, gray unknown'
+        draw.text((24, 746), footer, fill=(35, 35, 35), font=font(18))
+        frames.append(indexed(canvas))
+        durations.append(2200)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(args.output, save_all=True, append_images=frames[1:], duration=durations,
                    loop=0, optimize=False, disposal=1)

@@ -67,8 +67,8 @@ def main():
         metric_html='<h2>Synthetic GT evaluation</h2><table><tr><th>State</th><th>Translation RMSE [m]</th><th>Yaw RMSE [rad]</th></tr>'+rows+'</table>'
     (a.output/'index.html').write_text('<!doctype html><html lang="en"><meta charset="utf-8"><title>Occupancy Joining demo</title><style>body{font:16px/1.6 sans-serif;margin:24px}main{display:flex;gap:18px}section{flex:1;min-width:0}img{width:100%;height:auto}h2{font-size:18px}</style><h1>Occupancy Joining: '+a.demo+'</h1><p>'+note+'</p><p>Maps share the same world frame. Open individual images at full resolution, or use the ROS 2 RViz Map topic selector.</p><main>'+''.join(images)+'</main><p><a href="demo.gif">Animated submap joining</a></p>'+metric_html+'</html>')
     animation=[sys.executable,str(ROOT/'demo/animate.py'),'--result',str(a.output),'--output',str(a.output/'demo.gif')]
-    if a.demo=='room':animation+=['--subtitle','Synthetic room | three internally exact submaps with imposed frame errors','--roi','-4.5','4','-3.5','3.5']
-    if a.demo=='b2':animation+=['--roi','50','150','-20','30','--title','Grid-based Submap Joining | Museum b2']
+    if a.demo=='room':animation+=['--subtitle','Synthetic room | three internally exact submaps with imposed frame errors']
+    if a.demo=='b2':animation+=['--title','Grid-based Submap Joining | Museum b2','--subtitle','Real museum dataset | 51,833 scans | 35 submaps | Cartographer initial poses']
     subprocess.run(animation,check=True)
     (a.output/'demo.json').write_text(json.dumps(dict(demo=a.demo,seconds=time.monotonic()-started,frames=90 if a.demo=='room' else 51833,notes=note,optimizer_source='demo.yaml' if a.demo=='room' else 'preparation.json',display_resolution=.05 if a.demo=='room' else .1),indent=2));print(a.output/'index.html',flush=True)
 

@@ -6,12 +6,17 @@ Yingyu Wang, Liang Zhao, and Shoudong Huang
 ROS 2 / C++17 implementation for jointly optimizing a global 2D occupancy map
 and local submap frames using global-to-local projection and a pose-only Schur solve.
 
+![Submap joining on the real b2 museum dataset](media/b2.gif)
+
+**Museum b2:** 51,833 scans and 35 submaps, initialized with Cartographer poses.
+The animation shows recorded C++ joining updates and the initial, directly
+optimized and pose-rebuilt occupancy maps.
+
 ![Joining three initially displaced synthetic submaps](media/room.gif)
 
-**Synthetic alignment demo:** three internally exact submaps with imposed frame
-errors. Recorded C++ updates reduce pose RMSE from 0.632 m to below 0.001 m.
-The animation compares initial alignment, actual joining updates and all three
-occupancy-map outputs at fixed views.
+**Synthetic alignment:** three internally exact submaps with imposed frame errors;
+pose RMSE decreases from 0.632 m to below 0.001 m. Both animations use a fixed
+view of the entire map throughout.
 
 ## Installation
 

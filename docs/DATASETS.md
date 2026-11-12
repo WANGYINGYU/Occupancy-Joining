@@ -55,11 +55,11 @@ Demos write `results/demo.gif`. To render an existing result:
 
 ```bash
 python3 demo/animate.py --result /absolute/b2-demo/results \
-  --output /absolute/b2-demo/results/demo.gif --roi 50 150 -20 30
+  --output /absolute/b2-demo/results/demo.gif
 ```
 
-The GIF uses consistently colored local occupied cells, recorded submap updates,
-fixed map extents and a fixed detail window. It ends with the three exported
-grayscale occupancy grids. When evaluation GT is present, it displays pose RMSE
-in the fixed input gauge. `--frames` controls
-the number of recorded updates shown.
+The GIF shows recorded submap updates in a fixed whole-map viewport, followed
+by the initial, directly optimized and pose-rebuilt grayscale occupancy maps.
+All frames use the same world bounds and scale. When evaluation GT is present,
+it displays pose RMSE in the fixed input gauge. `--frames` controls the number
+of recorded updates shown.
