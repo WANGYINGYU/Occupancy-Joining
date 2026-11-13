@@ -1,10 +1,12 @@
 # Grid-based Submap Joining: An Efficient Algorithm for Simultaneously Optimizing Global Occupancy Map and Local Submap Frames
 
 Yingyu Wang, Liang Zhao, and Shoudong Huang
-**IROS 2024** · [Paper](https://arxiv.org/abs/2501.12764) · [DOI](https://doi.org/10.1109/IROS58592.2024.10802536)
+**IROS 2024** · [Paper](https://arxiv.org/abs/2501.12764) · [Video](https://www.youtube.com/watch?v=jZEnyrKXRBw) · [DOI](https://doi.org/10.1109/IROS58592.2024.10802536)
 
 ROS 2 / C++17 implementation for jointly optimizing a global 2D occupancy map
 and local submap frames using global-to-local projection and a pose-only Schur solve.
+
+[![Paper video](https://img.youtube.com/vi/jZEnyrKXRBw/maxresdefault.jpg)](https://www.youtube.com/watch?v=jZEnyrKXRBw)
 
 ![Submap joining on b2 laser scans](media/b2.gif)
 
