@@ -6,33 +6,13 @@ Yingyu Wang, Liang Zhao, and Shoudong Huang
 ROS 2 / C++17 implementation for jointly optimizing a global 2D occupancy map
 and local submap frames using global-to-local projection and a pose-only Schur solve.
 
-![Submap joining on b2 real laser scans with controlled initial frame errors](media/b2.gif)
+![Submap joining on b2 laser scans](media/b2.gif)
 
-**b2:** 51,833 real laser scans and 44 spatial submaps. Initial submap frames
-have controlled errors of nominal 1 m / 2° around a Cartographer pose estimate.
-The animation shows recorded joining updates and all three output maps in a
-fixed whole-map view.
-
-Frozen repeated-observation consistency on 28 scan pairs in the central hall:
-
-| State | Point-to-plane mean [m] | Point-to-point mean [m] |
-| --- | ---: | ---: |
-| Initial | 0.771 | 1.257 |
-| Optimized | 0.114 | 0.258 |
-
-References are estimated from repeated scans, with fixed endpoint/normal
-correspondences. [Input preparation and evaluation](docs/DATASETS.md#b2).
-
-![Joining three initially displaced synthetic submaps](media/room.gif)
-
-**Synthetic alignment:** three internally exact submaps with imposed frame errors;
-pose RMSE decreases from 0.632 m to below 0.001 m. Both animations use a fixed
-view of the entire map throughout.
+*b2: 51,833 laser scans, 44 submaps, and nominal 1 m / 2° initial submap-frame perturbations.*
 
 ## Installation
 
-Ubuntu 24.04; Python 3.11 or later. Choose [Docker](https://docs.docker.com/engine/install/ubuntu/)
-or a native [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html) installation.
+Ubuntu 24.04 with Docker or ROS 2 Jazzy.
 
 ```bash
 git clone https://github.com/WANGYINGYU/Occupancy-Joining.git
@@ -41,16 +21,17 @@ cd Occupancy-Joining
 
 ### Docker
 
+Install [Docker Engine](https://docs.docker.com/engine/install/ubuntu/), then build:
+
 ```bash
 bash tools/docker.sh build
 ```
 
-The image includes ROS 2, slam_toolbox, RViz and the C++/Python dependencies.
-Builds use two compiler jobs; use `--build-arg BUILD_JOBS=1` to reduce this.
+The image includes ROS 2, slam_toolbox, RViz and all build/runtime dependencies.
 
 ### Native
 
-Install ROS 2 Jazzy, then run:
+Install [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html), then run:
 
 ```bash
 sudo apt update
@@ -68,7 +49,7 @@ bash tools/build.sh
 source install/setup.bash
 ```
 
-Source these environments in each new native terminal:
+In each new native terminal:
 
 ```bash
 source .venv/bin/activate
@@ -76,53 +57,50 @@ source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 ```
 
-## Run a Demo
+## Demo
 
-Run from the repository root with a new `--work` directory outside the checkout.
-Inputs download automatically; Docker demos also build the image automatically.
+Run from the repository root with a new work directory outside the checkout.
+Inputs download automatically.
 
 ```bash
 python3 demo/run.py --demo b2 --work /absolute/path/to/b2-demo
-python3 demo/run.py --demo room --work /absolute/path/to/room-demo
 ```
 
-For a native build, add `--native`. Open `<work>/results/index.html` for map
-comparisons or `<work>/results/demo.gif` for the animation.
+Add `--native` to use a native build. Select a dataset with `--demo`:
 
-| Demo | Input | Submaps | Backend | Display grid |
-| --- | --- | ---: | --- | --- |
-| b2 | 51,833 real scans; controlled initial submap frames; repeated-scan references | 44 | `globalized_inverse` | 0.05 m |
-| room | 90 synthetic scans; imposed submap frame errors; evaluation GT | 3 | `globalized_inverse` | 0.05 m |
-| intel | 13,631 real laser scans; local tracking poses; manual evaluation relations | 14 | `globalized_inverse` | 0.05 m |
+| Dataset | Scans | Submaps |
+| --- | ---: | ---: |
+| `b2` | 51,833 | 44 |
+| `room` | 90 | 3 |
+| `intel` | 13,631 | 14 |
 
-The [b2 input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.2.0),
-[Intel input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.4)
-and [room input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.2)
-include the inputs, parameters and dataset notices. See
-[dataset preparation and cached downloads](docs/DATASETS.md).
+Open `<work>/results/index.html` for the output maps or
+`<work>/results/demo.gif` for the animation.
+[Dataset inputs and cached downloads](docs/DATASETS.md).
 
 ## Use Your Own Data
 
 Copy a profile from `src/occupancy_joining/config/` and edit its input settings.
 YAML paths resolve relative to the configuration file.
 
-| Input | Profile | Required settings |
+| Input | Profile | Settings |
 | --- | --- | --- |
-| TXT | `txt.yaml` | `input.dataset`; scan angles and range limits |
-| LaserScan / MultiEchoLaserScan bag | `rosbag_laserscan.yaml` | Bag path and topic names |
+| TXT | `txt.yaml` | Dataset path, scan angles and range limits |
+| LaserScan / MultiEchoLaserScan bag | `rosbag_laserscan.yaml` | Bag path and input topics |
 | PointCloud2 bag | `rosbag_pointcloud.yaml` | Topics, projection frame and height interval |
 | Local grids | [Submap manifest](docs/CONFIGURATION.md#prebuilt-submaps) | Grid files and initial frame poses |
 
-TXT datasets contain `Range.txt` (one scan per row, metres; gzip is supported) and `Pose.txt`
-(one sensor-to-world `x y yaw` per row, metres/radians). ROS1 bags are files;
-ROS2 bags are directories. Copy `slam_toolbox.yaml` alongside a bag profile,
-and set `bag.scan_topic`, `odom_topic`, `tf_topic` and `tf_static_topic`.
+TXT input uses `Range.txt` (one scan per row, metres) and `Pose.txt`
+(one sensor-to-world `x y yaw` per row, metres/radians).
+For bags, copy `slam_toolbox.yaml` alongside the selected profile and set
+`bag.scan_topic`, `bag.odom_topic`, `bag.tf_topic` and `bag.tf_static_topic`.
+ROS1 bags are files; ROS2 bags are directories.
 
 ```bash
 # Inspect bag topics
 bash tools/docker.sh inspect /absolute/path/to/input.bag
 
-# Run with your configuration
+# Docker
 bash tools/docker.sh run --config /absolute/path/to/sequence.yaml
 
 # Native
@@ -130,12 +108,10 @@ bash tools/occupancy-joining run --config /absolute/path/to/sequence.yaml \
   --output /absolute/path/to/results
 ```
 
-Set `OCCUPANCY_JOINING_WORKSPACE` to choose the Docker output root. Additional
-input folders can be mounted with `--mount-input /absolute/path` before `run`.
-See [configuration](docs/CONFIGURATION.md) for odometry, submap
-partitioning and optimizer settings, and [method](docs/METHOD.md) for the two backends.
-The [b2 profile](docs/B2_CONFIGURATION.md) combines spatial submaps, multiscale
-joining and independent 0.05 m map reconstruction.
+Set `OCCUPANCY_JOINING_WORKSPACE` to choose the Docker output root.
+Use `--mount-input /absolute/path` before `run` for additional input directories.
+
+[Configuration](docs/CONFIGURATION.md) · [b2 profile](docs/B2_CONFIGURATION.md) · [Method](docs/METHOD.md)
 
 ## RViz
 
@@ -147,21 +123,20 @@ bash tools/docker.sh --gui view --result /absolute/path/to/results
 bash tools/occupancy-joining view --result /absolute/path/to/results
 ```
 
-Select a topic in the RViz **Map** display to compare:
+Select a topic in the RViz **Map** display:
 
-| Topic | Output |
+| Topic | Map |
 | --- | --- |
-| `/occupancy_joining/initial/map` | Map at the initial poses |
+| `/occupancy_joining/initial/map` | Map at initial poses |
 | `/occupancy_joining/optimized/map` | Direct optimized occupancy field |
-| `/occupancy_joining/reintegrated/map` | Map rebuilt at the optimized poses |
+| `/occupancy_joining/reintegrated/map` | Rebuilt with optimized poses |
 
-Maps use `nav_msgs/OccupancyGrid`: black occupied, white free, gray unknown.
+Maps use `nav_msgs/OccupancyGrid` with black occupied, white free and gray unknown.
 Trajectories and submap frames use `nav_msgs/Path` under each state's
-`/trajectory` and `/submap_frames`. Use fixed frame `map` and Reliable/Transient Local QoS.
+`/trajectory` and `/submap_frames`. Set fixed frame to `map` and QoS to Reliable/Transient Local.
 
-`display.resolution` sets the initial/rebuilt raw-scan map resolution independently
-of the optimizer; 0.05 or 0.1 m is typical. The optimized field uses its native grid.
-For headless publication, add `--no-rviz --duration 5` and omit `--gui`.
+`display.resolution` controls the initial/rebuilt map resolution independently
+of the optimization grid; use 0.05 or 0.1 m. The optimized field retains its native resolution.
 
 ## Citation
 
