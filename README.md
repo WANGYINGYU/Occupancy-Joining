@@ -6,18 +6,22 @@ Yingyu Wang, Liang Zhao, and Shoudong Huang
 ROS 2 / C++17 implementation for jointly optimizing a global 2D occupancy map
 and local submap frames using global-to-local projection and a pose-only Schur solve.
 
-![Submap joining on the Intel Research Lab dataset](media/intel.gif)
+![Submap joining on b2 real laser scans with controlled initial frame errors](media/b2.gif)
 
-**Intel Research Lab:** 13,631 real laser scans and 14 submaps. The animation
-shows the initial alignment, recorded optimizer updates and the three output maps
-in a fixed whole-map view. Initial poses use local scan tracking.
+**b2:** 51,833 real laser scans and 44 spatial submaps. Initial submap frames
+have controlled errors of nominal 1 m / 2° around a Cartographer pose estimate.
+The animation shows recorded joining updates and all three output maps in a
+fixed whole-map view.
 
-Independent evaluation against 2,984 manually matched relative-pose references:
+Frozen repeated-observation consistency on 28 scan pairs in the central hall:
 
-| State | Translation RMSE [m] | Rotation RMSE [deg] |
+| State | Point-to-plane mean [m] | Point-to-point mean [m] |
 | --- | ---: | ---: |
-| Initial | 1.327 | 2.311 |
-| Optimized | 0.586 | 2.329 |
+| Initial | 0.771 | 1.257 |
+| Optimized | 0.114 | 0.258 |
+
+References are estimated from repeated scans, with fixed endpoint/normal
+correspondences. [Input preparation and evaluation](docs/DATASETS.md#b2).
 
 ![Joining three initially displaced synthetic submaps](media/room.gif)
 
@@ -78,8 +82,8 @@ Run from the repository root with a new `--work` directory outside the checkout.
 Inputs download automatically; Docker demos also build the image automatically.
 
 ```bash
+python3 demo/run.py --demo b2 --work /absolute/path/to/b2-demo
 python3 demo/run.py --demo room --work /absolute/path/to/room-demo
-python3 demo/run.py --demo intel --work /absolute/path/to/intel-demo
 ```
 
 For a native build, add `--native`. Open `<work>/results/index.html` for map
@@ -87,10 +91,12 @@ comparisons or `<work>/results/demo.gif` for the animation.
 
 | Demo | Input | Submaps | Backend | Display grid |
 | --- | --- | ---: | --- | --- |
+| b2 | 51,833 real scans; controlled initial submap frames; repeated-scan references | 44 | `globalized_inverse` | 0.05 m |
 | room | 90 synthetic scans; imposed submap frame errors; evaluation GT | 3 | `globalized_inverse` | 0.05 m |
 | intel | 13,631 real laser scans; local tracking poses; manual evaluation relations | 14 | `globalized_inverse` | 0.05 m |
 
-The [Intel input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.4)
+The [b2 input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.2.0),
+[Intel input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.4)
 and [room input archive](https://github.com/WANGYINGYU/Occupancy-Joining/releases/tag/v0.1.2)
 include the inputs, parameters and dataset notices. See
 [dataset preparation and cached downloads](docs/DATASETS.md).
@@ -107,7 +113,7 @@ YAML paths resolve relative to the configuration file.
 | PointCloud2 bag | `rosbag_pointcloud.yaml` | Topics, projection frame and height interval |
 | Local grids | [Submap manifest](docs/CONFIGURATION.md#prebuilt-submaps) | Grid files and initial frame poses |
 
-TXT datasets contain `Range.txt` (one scan per row, metres) and `Pose.txt`
+TXT datasets contain `Range.txt` (one scan per row, metres; gzip is supported) and `Pose.txt`
 (one sensor-to-world `x y yaw` per row, metres/radians). ROS1 bags are files;
 ROS2 bags are directories. Copy `slam_toolbox.yaml` alongside a bag profile,
 and set `bag.scan_topic`, `odom_topic`, `tf_topic` and `tf_static_topic`.
@@ -128,6 +134,8 @@ Set `OCCUPANCY_JOINING_WORKSPACE` to choose the Docker output root. Additional
 input folders can be mounted with `--mount-input /absolute/path` before `run`.
 See [configuration](docs/CONFIGURATION.md) for odometry, submap
 partitioning and optimizer settings, and [method](docs/METHOD.md) for the two backends.
+The [b2 profile](docs/B2_CONFIGURATION.md) combines spatial submaps, multiscale
+joining and independent 0.05 m map reconstruction.
 
 ## RViz
 

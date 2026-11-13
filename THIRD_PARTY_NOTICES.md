@@ -15,3 +15,8 @@ SLAM Benchmarking archive, under Creative Commons Attribution 1.0.
 Its manual relative-pose relations are Creative Commons Attribution 3.0.
 The demo input archive includes attribution, source links and preparation details
 in `DATA_NOTICE.txt`; see `docs/DATASETS.md`.
+
+The b2 bag is obtained directly from the Google Cartographer public-data provider.
+Its sensor-data terms remain applicable. The separate demo archive contains
+project-generated initialization and evaluation preparation artifacts; its
+`DATA_NOTICE.txt` records their provenance and terms.

@@ -102,3 +102,5 @@ bash tools/occupancy-joining run --config /absolute/initialized/joining.yaml \
 The generated recipe resets row selection for the exported subset and disables
 GT evaluation. Without `--graph-poses`, the initializer runs `slam_toolbox`;
 `--pose-estimate final_graph` requests the final graph. The exported configuration can be used directly by the joining backend.
+
+`display.max_cells` optionally sets a separate reconstruction cell budget; omitted values reuse `optimizer.max_cells`. `display.grid_format` is `text` by default or `npz` for lossless compressed display grids. RViz uses `display.npz`, then `display.grid`, then the native `map.grid`. The directly optimized field keeps its numerical resolution. See the [b2 profile](B2_CONFIGURATION.md).

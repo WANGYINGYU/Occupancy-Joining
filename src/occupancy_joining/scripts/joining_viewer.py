@@ -24,7 +24,7 @@ def main():
     states = ('initial','optimized','reintegrated')
     if (a.result/'maps/input/map.grid').is_file():states = ('input',)+states
     for state in states:
-        folder=a.result/'maps'/state;path=folder/'display.grid' if (folder/'display.grid').exists() else folder/'map.grid';g=read_grid(path)
+        folder=a.result/'maps'/state;path=next((folder/name for name in ('display.npz','display.grid','map.grid') if (folder/name).is_file()),folder/'map.grid');g=read_grid(path)
         observed=np.argwhere(g['counts']>0)
         if len(observed):
             xy=observed[:,::-1]*g['resolution']+g['origin'];bounds.extend([xy.min(axis=0),xy.max(axis=0)])
@@ -54,8 +54,7 @@ def main():
                 lo=np.min(bounds,axis=0);hi=np.max(bounds,axis=0);center=(lo+hi)/2;size=np.maximum(hi-lo,1.)
                 config['Visualization Manager']['Views']['Current'].update(X=float(center[0]),Y=float(center[1]),Scale=float(min(720/size[0],640/size[1])*.75))
             path=out/'joining.rviz';path.write_text(yaml.safe_dump(config,sort_keys=False))
-            home=out/'home';home.mkdir(exist_ok=True)
-            viewer_env=dict(os.environ,HOME=str(home))
+            viewer_env=dict(os.environ)
             process=subprocess.Popen(['rviz2','-d',str(path),'-t','Occupancy Joining - RViz2'],env=viewer_env)
         started=time.monotonic();last=0
         print(f'Publishing {len(publishers)-1} standard ROS2 map/path topics + a static frame reference; domain {a.domain_id}',flush=True)

@@ -143,12 +143,67 @@ def whole_bounds(locals_, history, grids):
     return [lo[0], hi[0], lo[1], hi[1]]
 
 
+def render_occupancy(locals_, poses, steps, grids, bounds, title, output, frame_limit):
+    """Project observed cells at recorded poses in a fixed whole-map viewport."""
+    xmin, xmax, ymin, ymax = bounds
+    width, height = 1800, 1550
+    box = (20, 92, 1760, 1380)
+    scale = min(box[2] / (xmax - xmin), (box[3] - 40) / (ymax - ymin))
+    w, h = round(scale * (xmax - xmin)), round(scale * (ymax - ymin))
+    left = box[0] + (box[2] - w) // 2
+    top = box[1] + 35 + (box[3] - 40 - h) // 2
+    observed, occupied = [], []
+    for grid in locals_:
+        y, x = np.nonzero(grid['counts'] > 0)
+        observed.append(np.column_stack((x, y)) * grid['resolution'] + grid['origin'])
+        occupied.append(occupied_points(grid))
+
+    def canvas(label):
+        image = Image.new('RGB', (width, height), 'white')
+        draw = ImageDraw.Draw(image)
+        draw.text((20, 12), title, fill='black', font=font(25))
+        draw.text((20, 52), label, fill=(45, 45, 45), font=font(19))
+        return image
+
+    def project(groups, anchors, pixels, value):
+        for points, anchor in zip(groups, anchors):
+            c, s = np.cos(anchor[2]), np.sin(anchor[2])
+            x = points[:, 0] * c - points[:, 1] * s + anchor[0]
+            y = points[:, 0] * s + points[:, 1] * c + anchor[1]
+            ix = np.floor((x - xmin) / (xmax - xmin) * w).astype(np.int32)
+            iy = np.floor((ymax - y) / (ymax - ymin) * h).astype(np.int32)
+            valid = (ix >= 0) & (ix < w) & (iy >= 0) & (iy < h)
+            pixels[iy[valid], ix[valid]] = value
+
+    selected = np.unique(np.linspace(0, len(steps) - 1, min(frame_limit, len(steps)), dtype=int))
+    frames, durations = [], []
+    for index in selected:
+        image = canvas(f'Recorded joining update {steps[index]} / {steps[-1]} | projected local occupancy cells')
+        pixels = np.full((h, w), 128, dtype=np.uint8)
+        project(observed, poses[index], pixels, 255)
+        project(occupied, poses[index], pixels, 0)
+        image.paste(Image.fromarray(pixels), (left, top))
+        ImageDraw.Draw(image).text((20, 1511), 'Black occupied; white observed; gray unknown | fixed whole-map view | recorded poses, no displacement scaling', fill=(40, 40, 40), font=font(17))
+        frames.append(image.convert('L').convert('P'))
+        durations.append(2200 if index in (selected[0], selected[-1]) else 130)
+    for grid, label in zip(grids, ['Initial raw-ray reconstruction', 'Direct optimized field', 'Raw-ray reconstruction with final poses']):
+        image = canvas(f'{label} | {grid["resolution"]:g} m')
+        panel(image, (20, 91, 1760, 1380), '', bounds, grid=grid)
+        frames.append(image.convert('L').convert('P'))
+        durations.append(2500)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    frames[0].save(output, save_all=True, append_images=frames[1:], duration=durations,
+                   loop=0, optimize=False, disposal=1)
+    print(f'Animation: {output} ({len(frames)} frames)', flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--result', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--title', default='Grid-based Submap Joining')
     parser.add_argument('--subtitle', default='Local submap occupied cells | recorded optimizer updates')
+    parser.add_argument('--style', choices=['submaps', 'occupancy'], default='submaps')
     parser.add_argument('--frames', type=int, default=40)
     args = parser.parse_args()
     if args.frames < 2:
@@ -174,12 +229,15 @@ def main():
     grids = []
     for state in ['initial', 'optimized', 'reintegrated']:
         folder = result / 'maps' / state
-        grid = read_grid(folder / ('display.grid' if (folder / 'display.grid').exists() else 'map.grid'))
+        grid = read_grid(next(folder / name for name in ('display.npz', 'display.grid', 'map.grid') if (folder / name).is_file()))
         grid['gray'] = np.rint(255 * (1 - probabilities(grid))).astype(np.uint8)
         grid['gray'][grid['counts'] <= 0] = 128
         grids.append(grid)
     occupied = [occupied_points(grid) for grid in locals_]
     bounds = whole_bounds(locals_, poses, grids)
+    if args.style == 'occupancy':
+        render_occupancy(locals_, poses, steps, grids, bounds, args.title, args.output, args.frames)
+        return
     errors = evaluation_rmse(result, cfg['submaps'], poses)
     relation_errors = None
     if (result / 'reference_relations.txt').is_file():

@@ -1,0 +1,27 @@
+# Full-rate b2 first-echo scans and frontend poses.
+input:
+  type: txt
+  angle_min: -2.3518311977386475
+  angle_max: 2.3518311977386475
+  min_range: 0.1
+  max_range: 30.0
+submaps:
+  partition: spatial
+  scans_per_submap: 1500
+  max_extent: 30.0
+  max_travel: 60.0
+  overlap_travel: 6.0
+  local_resolution: 0.1
+  cell_update_policy: hit_priority
+optimizer:
+  model: globalized_inverse
+  global_resolution: 0.1
+  max_cells: 8000000
+  max_iterations: 70
+  huber_delta: 1.0
+  continuation_sigmas: [8.0, 4.0, 2.0, 1.0, 0.0]
+display:
+  resolution: 0.05
+  max_cells: 32000000
+  grid_format: npz
+  cell_update_policy: hit_priority

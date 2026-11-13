@@ -45,9 +45,10 @@ def bind(path,readonly=False,target=None):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--demo',choices=['room','intel'],default='room');p.add_argument('--work',type=Path,required=True,help='New directory for downloaded inputs, results and logs')
+    p.add_argument('--demo',choices=['room','intel','b2'],default='room');p.add_argument('--work',type=Path,required=True,help='New directory for downloaded inputs, results and logs')
     p.add_argument('--native',action='store_true',help='Use the sourced native ROS installation instead of Docker')
     p.add_argument('--archive',type=Path,help='Previously downloaded, unmodified demo input archive')
+    p.add_argument('--bag',type=Path,help='Original b2 bag; otherwise downloaded from the original provider')
     p.add_argument('--image',default=os.environ.get('OCCUPANCY_JOINING_DOCKER_IMAGE','occupancy-joining:jazzy'))
     p.add_argument('--mount-input',type=Path,action='append',default=[],help='Additional read-only directory to mount at the same absolute path (Docker)')
     p.add_argument('--timeout',type=int,default=3600)
@@ -55,6 +56,7 @@ def main():
     if work.exists():p.error('--work must be a new directory')
     if work.is_relative_to(ROOT):p.error('Keep demo inputs/results outside the source checkout')
     if a.timeout<=0:p.error('Use a positive timeout')
+    if a.bag and a.demo!='b2':p.error('--bag is only used by the b2 demo')
     work.mkdir(parents=True);runtime=work/'runtime';runtime.mkdir();env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1')
     env.pop('OCCUPANCY_JOINING_RUN_DIR',None)
     for key,sub in [('TMPDIR','tmp'),('TMP','tmp'),('TEMP','tmp'),('ROS_HOME','ros'),('ROS_LOG_DIR','ros_logs'),('XDG_CACHE_HOME','cache'),('MPLCONFIGDIR','matplotlib'),('PYTHONPYCACHEPREFIX','pycache')]:
@@ -64,9 +66,14 @@ def main():
     try:
         archive=a.archive.expanduser().resolve(strict=True) if a.archive else download(meta['download_url'],work/meta['archive_name'],meta['archive_bytes'],meta['archive_sha256'])
         verify(archive,meta['archive_bytes'],meta['archive_sha256']);unpack(archive,work/'data',a.demo,meta['archive_unpacked_bytes'])
+        bag=None
+        if a.demo=='b2':
+            raw=meta['raw'];bag=a.bag.expanduser().resolve(strict=True) if a.bag else download(raw['url'],work/raw['name'],raw['bytes'],raw['sha256'])
+            verify(bag,raw['bytes'],raw['sha256'])
         args=['--demo',a.demo,'--data',str(work/'data'/a.demo),'--output',str(work/'results')]
+        if bag:args+=['--bag',str(bag)]
         if a.native:
-            backend=ROOT/'install/occupancy_joining/lib/occupancy_joining/joining_backend'
+            backend=Path(env.get('OCCUPANCY_JOINING_BACKEND',ROOT/'install/occupancy_joining/lib/occupancy_joining/joining_backend')).expanduser().resolve()
             if not backend.is_file():raise ValueError('Build this checkout and source install/setup.bash first')
             env['OCCUPANCY_JOINING_BACKEND']=str(backend);command=[sys.executable,str(ROOT/'demo/worker.py'),*args]
         else:
@@ -80,6 +87,7 @@ def main():
                 if not extra.is_dir() or extra==Path(extra.anchor):raise ValueError('Additional input mount must be a directory other than the filesystem root')
                 command+=bind(extra,readonly=True)
             command+=bind(work)+bind(work/'data',readonly=True)
+            if bag and not bag.is_relative_to(work):command+=bind(bag,readonly=True)
             for sub,target in [('container_tmp','/tmp'),('container_var_tmp','/var/tmp'),('container_shm','/dev/shm')]:
                 folder=runtime/sub;folder.mkdir();command+=bind(folder,target=target)
             for key in ['TMPDIR','TMP','TEMP','ROS_HOME','ROS_LOG_DIR','XDG_CACHE_HOME','MPLCONFIGDIR','PYTHONPYCACHEPREFIX','PYTHONDONTWRITEBYTECODE','OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:command+=['--env',f'{key}={env[key]}']

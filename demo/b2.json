@@ -1,0 +1,17 @@
+{
+  "name": "b2 real scans with controlled initial submap frames",
+  "frames": 51833,
+  "kind": "real",
+  "raw": {
+    "name": "b2-2015-07-07-11-27-05.bag",
+    "url": "https://storage.googleapis.com/cartographer-public-data/bags/backpack_2d/b2-2015-07-07-11-27-05.bag",
+    "bytes": 361070920,
+    "sha256": "4fe21fd9b32f6024f71fed21193f14858202a0757092e9e28080aa77ca25b146",
+    "topic": "horizontal_laser_2d"
+  },
+  "archive_name": "Occupancy_Joining_B2_Inputs_v0.2.0.tar.gz",
+  "archive_bytes": 1997863,
+  "archive_sha256": "569961d62cfe71e2d20a6abb6cf061498af0d68fdb75897725c004e07b51c383",
+  "archive_unpacked_bytes": 4418664,
+  "download_url": "https://github.com/WANGYINGYU/Occupancy-Joining/releases/download/v0.2.0/Occupancy_Joining_B2_Inputs_v0.2.0.tar.gz"
+}

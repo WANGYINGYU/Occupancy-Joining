@@ -11,7 +11,7 @@ from project_paths import ROOT
 DEFAULTS=dict(input=dict(type='txt',dataset=None,ranges=None,poses=None,odom=None,start=0,stride=1,max_scans=0,angle_min=-2.356194490192345,angle_max=2.356194490192345,min_range=.1,max_range=30.,scan_period=.1,ground_truth=None),
  submaps=dict(partition='frames',max_extent=30.,max_travel=60.,overlap_travel=6.,scans_per_submap=1000,overlap=0,local_resolution=.1,cell_update_policy='first_sample',anchor_poses=None),
  optimizer=dict(model='matlab_inverse',max_iterations=70,tolerance=1e-7,global_resolution=.1,padding=5.,minimum_count=1e-9,max_cells=2000000,huber_delta=1.,n_smoothing=1e-6,inverse_delete_threshold=.5,count_delete_threshold=.001,inverse_gradient='matlab',max_backtracks=10,continuation_sigmas=[0.]),
- display=dict(resolution=.05,cell_update_policy='first_sample'),bag=dict(pose_estimate='causal',graph_exporter=None,scan_topic='auto',odom_source='auto',odom_topic='/odom',tf_topic='/tf',tf_static_topic='/tf_static',odom_frame='odom',tf_max_gap=.2,projection_frame=None,min_height=-.2,max_height=.2,bins=720,icp_distance=.8,beam_stride=1,scan_stride=1,start=0,max_scans=0,min_range=.1,max_range=30.,slam_config=None,frontend_resolution=None,scan_timeout=3.,startup_timeout=30.,min_accepted_fraction=.8,domain_id=87))
+ display=dict(resolution=.05,cell_update_policy='first_sample',max_cells=None,grid_format='text'),bag=dict(pose_estimate='causal',graph_exporter=None,scan_topic='auto',odom_source='auto',odom_topic='/odom',tf_topic='/tf',tf_static_topic='/tf_static',odom_frame='odom',tf_max_gap=.2,projection_frame=None,min_height=-.2,max_height=.2,bins=720,icp_distance=.8,beam_stride=1,scan_stride=1,start=0,max_scans=0,min_range=.1,max_range=30.,slam_config=None,frontend_resolution=None,scan_timeout=3.,startup_timeout=30.,min_accepted_fraction=.8,domain_id=87))
 PATHS={'dataset','ranges','poses','odom','anchor_poses','slam_config','graph_exporter','ground_truth'}
 
 def settings(path):
@@ -129,6 +129,8 @@ def validate(cfg):
             if isinstance(val,float) and not np.isfinite(val):raise ValueError(f'Nonfinite {section}.{key}')
     if a['stride']<1 or a['start']<0 or a['max_scans']<0 or not 0<=a['min_range']<a['max_range'] or a['angle_min']>=a['angle_max']:raise ValueError('Invalid input selection or geometry')
     if min(s['local_resolution'],o['global_resolution'],cfg['display']['resolution'])<=0:raise ValueError('Resolutions must be positive')
+    d=cfg['display'];limit=d['max_cells']
+    if d['grid_format'] not in ('text','npz') or (limit is not None and (not isinstance(limit,int) or isinstance(limit,bool) or limit<4)):raise ValueError('Invalid display storage/cell budget')
     if s['partition'] not in ('frames','spatial') or not isinstance(s['scans_per_submap'],int) or isinstance(s['scans_per_submap'],bool) or s['scans_per_submap']<2:raise ValueError('Invalid submap partition')
     if s['partition']=='spatial' and (min(s['max_extent'],s['max_travel'])<=0 or not 0<=s['overlap_travel']<s['max_travel']):raise ValueError('Invalid spatial bounds/overlap')
     if s['cell_update_policy'] not in ('first_sample','hit_priority') or cfg['display']['cell_update_policy'] not in ('first_sample','hit_priority'):raise ValueError('Invalid cell update policy')
@@ -205,8 +207,8 @@ def main():
                     error=robot-aligned;error[:,2]=(error[:,2]+np.pi)%(2*np.pi)-np.pi
                     metrics[method]=dict(translation_rmse_m=float(np.sqrt(np.mean(np.sum(error[1:,:2]**2,axis=1)))),yaw_rmse_rad=float(np.sqrt(np.mean(error[1:,2]**2))))
                 if method!='optimized':
-                    display=build_map(ranges,robot,angles,cfg['display']['resolution'],a['min_range'],a['max_range'],cfg['optimizer']['max_cells'],cfg['display']['cell_update_policy'])
-                    write_grid(display,folder/'display.grid');export_image(display,folder/'display')
+                    display=build_map(ranges,robot,angles,cfg['display']['resolution'],a['min_range'],a['max_range'],cfg['display']['max_cells'] or cfg['optimizer']['max_cells'],cfg['display']['cell_update_policy'])
+                    write_grid(display,folder/('display.npz' if cfg['display']['grid_format']=='npz' else 'display.grid'));export_image(display,folder/'display')
             else:write_grid(g,folder/'display.grid') # no raw rays: preserve native resolution explicitly
         (out/'metrics.json').write_text(json.dumps(metrics,indent=2,allow_nan=False))
         (out/'effective_config.yaml').write_text(yaml.safe_dump(cfg))

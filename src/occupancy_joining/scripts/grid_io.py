@@ -5,6 +5,20 @@ from PIL import Image
 import yaml
 
 def read_grid(path):
+    if Path(path).suffix == '.npz':
+        with np.load(path, allow_pickle=False) as z:
+            header = np.asarray(z['header'], dtype=float)
+            if header.shape != (5,) or not np.isfinite(header).all():
+                raise ValueError(f'Invalid grid header: {path}')
+            w,h,res,x,y = header
+            if w != int(w) or h != int(h) or min(w,h)<2 or res<=0:
+                raise ValueError(f'Invalid grid dimensions: {path}')
+            w,h=int(w),int(h)
+            values=np.asarray(z['values'], dtype=float)
+            counts=np.asarray(z['counts'], dtype=float)
+        if values.shape!=(h,w) or counts.shape!=(h,w) or not np.isfinite(values).all() or not np.isfinite(counts).all() or np.any(counts<0):
+            raise ValueError(f'Invalid grid value/count: {path}')
+        return dict(width=w,height=h,resolution=float(res),origin=np.array([x,y]),values=values,counts=counts)
     with Path(path).open() as f:
         w,h,res,x,y=map(float,f.readline().split()); data=np.loadtxt(f,ndmin=2)
     w,h=int(w),int(h)
@@ -14,6 +28,9 @@ def read_grid(path):
 
 def write_grid(g,path):
     path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
+    if path.suffix == '.npz':
+        np.savez_compressed(path, header=np.array([g['width'],g['height'],g['resolution'],*g['origin']]), values=g['values'], counts=g['counts'])
+        return
     with path.open('w') as f:
         f.write(f'{g["width"]} {g["height"]} {g["resolution"]:.17g} {g["origin"][0]:.17g} {g["origin"][1]:.17g}\n')
         np.savetxt(f,np.column_stack((g['values'].ravel(),g['counts'].ravel())),fmt='%.17g')
