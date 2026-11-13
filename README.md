@@ -14,29 +14,77 @@ and local submap frames using global-to-local projection and a pose-only Schur s
 
 ## Installation
 
-### Docker
+### Get the source
 
-Ubuntu 24.04, Git, Python 3 and [Docker Engine](https://docs.docker.com/engine/install/ubuntu/).
-The Docker image includes ROS 2 Jazzy, slam_toolbox, RViz and the C++/Python dependencies.
+Install Git and Python 3, then clone the repository:
 
 ```bash
 git clone https://github.com/WANGYINGYU/Occupancy-Joining.git
 cd Occupancy-Joining
 export OCCUPANCY_JOINING_WORKSPACE="$(realpath -m ../occupancy-joining-workspace)"
-bash tools/docker.sh build
 ```
 
 Run subsequent commands from the repository root. The workspace stores outputs and logs.
 
+### Docker
+
+Ubuntu 24.04 with [Docker Engine](https://docs.docker.com/engine/install/ubuntu/).
+The Docker image includes ROS 2 Jazzy, slam_toolbox, RViz and the C++/Python dependencies.
+
+```bash
+bash tools/docker.sh build
+```
+
 ### Native ROS 2
 
-[Native build and dependencies](docs/INSTALLATION.md).
+Ubuntu 24.04 with [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html).
+
+Install the system dependencies:
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake python3-colcon-common-extensions \
+  python3-venv python3-pip python3-numpy python3-scipy python3-yaml \
+  python3-pil libeigen3-dev libyaml-cpp-dev \
+  libboost-serialization-dev ros-jazzy-ament-cmake \
+  ros-jazzy-slam-toolbox ros-jazzy-rviz2 ros-jazzy-rmw-fastrtps-cpp
+```
+
+Create the Python environment and compile:
+
+```bash
+/usr/bin/python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+source /opt/ros/jazzy/setup.bash
+export CMAKE_BUILD_PARALLEL_LEVEL=2 MAKEFLAGS=-j2
+bash tools/build.sh
+source install/setup.bash
+```
+
+In a new terminal, enter the repository and activate the environment:
+
+```bash
+export OCCUPANCY_JOINING_WORKSPACE="$(realpath -m ../occupancy-joining-workspace)"
+source .venv/bin/activate
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+```
 
 ## Demo
+
+### Docker
 
 ```bash
 python3 demo/run.py --demo b2 --work "$OCCUPANCY_JOINING_WORKSPACE/b2-demo"
 bash tools/docker.sh --gui view --result "$OCCUPANCY_JOINING_WORKSPACE/b2-demo/results"
+```
+
+### Native ROS 2
+
+```bash
+python3 demo/run.py --demo b2 --native --work "$OCCUPANCY_JOINING_WORKSPACE/b2-native-demo"
+bash tools/occupancy-joining view --result "$OCCUPANCY_JOINING_WORKSPACE/b2-native-demo/results"
 ```
 
 ## Input Data and Configuration
@@ -82,7 +130,13 @@ display:
 ```
 
 ```bash
+# Docker
 bash tools/docker.sh --mount-input /absolute/path/to/txt_dataset run \
+  --config ../occupancy-joining-config/txt.yaml \
+  --output "$OCCUPANCY_JOINING_WORKSPACE/txt-result"
+
+# Native ROS 2
+bash tools/occupancy-joining run \
   --config ../occupancy-joining-config/txt.yaml \
   --output "$OCCUPANCY_JOINING_WORKSPACE/txt-result"
 ```
@@ -96,7 +150,11 @@ Bag scans pass through slam_toolbox before submap joining.
 Inspect the recording:
 
 ```bash
+# Docker
 bash tools/docker.sh inspect /absolute/path/to/bag_directory/recording.bag
+
+# Native ROS 2
+bash tools/occupancy-joining inspect /absolute/path/to/bag_directory/recording.bag
 ```
 
 Edit `rosbag_laserscan.yaml` for laser scans or `rosbag_pointcloud.yaml` for point clouds.
@@ -120,7 +178,13 @@ For PointCloud2, also configure `projection_frame`, `min_height`, `max_height` a
 The profile controls the input topic names and the point-cloud slice used for 2D mapping.
 
 ```bash
+# Docker
 bash tools/docker.sh --mount-input /absolute/path/to/bag_directory run \
+  --config ../occupancy-joining-config/rosbag_laserscan.yaml \
+  --output "$OCCUPANCY_JOINING_WORKSPACE/bag-result"
+
+# Native ROS 2
+bash tools/occupancy-joining run \
   --config ../occupancy-joining-config/rosbag_laserscan.yaml \
   --output "$OCCUPANCY_JOINING_WORKSPACE/bag-result"
 ```
