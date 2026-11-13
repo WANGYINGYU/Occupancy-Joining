@@ -12,43 +12,162 @@ and local submap frames using global-to-local projection and a pose-only Schur s
 
 ## Installation
 
-Ubuntu 24.04 and [Docker Engine](https://docs.docker.com/engine/install/ubuntu/).
+### Docker
+
+Ubuntu 24.04, Git, Python 3 and [Docker Engine](https://docs.docker.com/engine/install/ubuntu/).
+The Docker image includes ROS 2 Jazzy, slam_toolbox, RViz and the C++/Python dependencies.
 
 ```bash
 git clone https://github.com/WANGYINGYU/Occupancy-Joining.git
 cd Occupancy-Joining
+export OCCUPANCY_JOINING_WORKSPACE="$(realpath -m ../occupancy-joining-workspace)"
 bash tools/docker.sh build
 ```
 
-[Native ROS 2 installation](docs/INSTALLATION.md).
+Run subsequent commands from the repository root. The workspace stores outputs and logs.
 
-## Run
+### Native ROS 2
 
-```bash
-python3 demo/run.py --demo b2 --work ../occupancy-joining-demo
-```
+[Native build and dependencies](docs/INSTALLATION.md).
 
-For your own data, copy the [configuration profiles](src/occupancy_joining/config/)
-and set `input.dataset`, input topics and sensor parameters.
-[Configuration reference](docs/CONFIGURATION.md).
+## Demo
 
 ```bash
-bash tools/docker.sh --mount-input /path/to/data run --config /path/to/config.yaml
+python3 demo/run.py --demo b2 --work "$OCCUPANCY_JOINING_WORKSPACE/b2-demo"
+bash tools/docker.sh --gui view --result "$OCCUPANCY_JOINING_WORKSPACE/b2-demo/results"
 ```
+
+## Input Data and Configuration
+
+Copy the profiles before editing paths, topics and sensor settings:
+
+```bash
+cp -r src/occupancy_joining/config ../occupancy-joining-config
+```
+
+YAML paths resolve relative to the configuration file. Docker mounts the configuration
+folder automatically; `--mount-input` mounts the referenced data directory at the same host path.
+
+### TXT scans and poses
+
+Provide one range row and one pose/odometry row per scan:
+
+| File | Format |
+| --- | --- |
+| `Range.txt` | Space-separated ranges in metres; one scan per row, one beam per column |
+| `Pose.txt` | Absolute sensor-to-world `x y yaw`, in metres and radians |
+| `Odom.txt` | Alternative to `Pose.txt`: first absolute pose, then SE(2) increments in the preceding sensor frame |
+
+Beam angles are uniformly spaced from `angle_min` to `angle_max`. Set the sensor geometry
+and independent map resolutions in `../occupancy-joining-config/txt.yaml`:
+
+```yaml
+input:
+  type: txt
+  dataset: /absolute/path/to/txt_dataset
+  angle_min: -2.356194490192345
+  angle_max: 2.356194490192345
+  min_range: 0.1
+  max_range: 30.0
+submaps:
+  local_resolution: 0.1
+optimizer:
+  global_resolution: 0.1
+display:
+  resolution: 0.05
+```
+
+```bash
+bash tools/docker.sh --mount-input /absolute/path/to/txt_dataset run \
+  --config ../occupancy-joining-config/txt.yaml \
+  --output "$OCCUPANCY_JOINING_WORKSPACE/txt-result"
+```
+
+### ROS bags
+
+ROS1 input is a `.bag` file; ROS2 input is a bag directory.
+LaserScan, MultiEchoLaserScan and PointCloud2 are supported.
+Bag scans pass through slam_toolbox before submap joining.
+
+Inspect the recording:
+
+```bash
+bash tools/docker.sh inspect /absolute/path/to/bag_directory/recording.bag
+```
+
+Edit `rosbag_laserscan.yaml` for laser scans or `rosbag_pointcloud.yaml` for point clouds.
+Keep `slam_toolbox.yaml` alongside the selected profile.
+
+```yaml
+input:
+  type: bag
+  dataset: /absolute/path/to/bag_directory/recording.bag
+bag:
+  scan_topic: /laser_scan
+  odom_source: auto
+  odom_topic: /wheel/odom
+  tf_topic: /tf
+  tf_static_topic: /tf_static
+  odom_frame: odom
+  slam_config: slam_toolbox.yaml
+```
+
+For PointCloud2, also configure `projection_frame`, `min_height`, `max_height` and `bins`.
+The profile controls the input topic names and the point-cloud slice used for 2D mapping.
+
+```bash
+bash tools/docker.sh --mount-input /absolute/path/to/bag_directory run \
+  --config ../occupancy-joining-config/rosbag_laserscan.yaml \
+  --output "$OCCUPANCY_JOINING_WORKSPACE/bag-result"
+```
+
+### Local occupancy grids
+
+Each grid starts with `width height resolution origin_x origin_y`, followed by
+`width * height` rows of `log_odds_sum hit_count`, with x changing fastest.
+Grid resolution and translations use metres; pose yaw uses radians.
+Define initial submap-to-world poses in `submaps.yaml`:
+
+```yaml
+submaps:
+  - grid: local0.grid
+    pose: [0.0, 0.0, 0.0]
+  - grid: local1.grid
+    pose: [3.0, 0.1, 0.02]
+```
+
+```bash
+bash tools/docker.sh --mount-input /absolute/path/to/submaps run \
+  --input-type submaps --manifest /absolute/path/to/submaps/submaps.yaml \
+  --output "$OCCUPANCY_JOINING_WORKSPACE/grid-result"
+```
+
+[Full configuration reference](docs/CONFIGURATION.md).
 
 ## Visualization
 
+Use the result directory passed to `--output`:
+
 ```bash
-bash tools/docker.sh --gui view --result ../occupancy-joining-demo/results
+# Docker
+bash tools/docker.sh --gui view --result "$OCCUPANCY_JOINING_WORKSPACE/txt-result"
+
+# Native ROS 2
+bash tools/occupancy-joining view --result /absolute/path/to/results
 ```
 
-Select a map topic in RViz:
+Docker GUI forwarding uses Linux X11/XWayland with `DISPLAY` and `XAUTHORITY` set.
+Select a topic in the RViz Map display; fixed frame is `map` and QoS is Reliable/Transient Local.
 
 | Topic | Map |
 | --- | --- |
 | `/occupancy_joining/initial/map` | Initial map |
-| `/occupancy_joining/optimized/map` | Optimized occupancy field |
+| `/occupancy_joining/optimized/map` | Direct optimized occupancy field |
 | `/occupancy_joining/reintegrated/map` | Rebuilt with optimized poses |
+
+Initial and rebuilt maps use `display.resolution` (typically 0.05 or 0.1 m), independently
+of the optimization grid. Maps use `nav_msgs/OccupancyGrid`; trajectories and submap
+frames use `nav_msgs/Path` under each state's `/trajectory` and `/submap_frames`.
 
 ## Citation
 
