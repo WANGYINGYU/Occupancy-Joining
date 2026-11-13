@@ -39,7 +39,9 @@ bash tools/docker.sh --gui view --result "$OCCUPANCY_JOINING_WORKSPACE/b2-demo/r
 
 ## Input Data and Configuration
 
-Copy the profiles before editing paths, topics and sensor settings:
+The pipeline partitions scans, initializes submap frames from the input trajectory,
+and computes local/global grid origins and dimensions automatically.
+Copy the profiles to set paths, topics, resolutions and submap partitioning:
 
 ```bash
 cp -r src/occupancy_joining/config ../occupancy-joining-config
@@ -121,26 +123,7 @@ bash tools/docker.sh --mount-input /absolute/path/to/bag_directory run \
   --output "$OCCUPANCY_JOINING_WORKSPACE/bag-result"
 ```
 
-### Local occupancy grids
-
-Each grid starts with `width height resolution origin_x origin_y`, followed by
-`width * height` rows of `log_odds_sum hit_count`, with x changing fastest.
-Grid resolution and translations use metres; pose yaw uses radians.
-Define initial submap-to-world poses in `submaps.yaml`:
-
-```yaml
-submaps:
-  - grid: local0.grid
-    pose: [0.0, 0.0, 0.0]
-  - grid: local1.grid
-    pose: [3.0, 0.1, 0.02]
-```
-
-```bash
-bash tools/docker.sh --mount-input /absolute/path/to/submaps run \
-  --input-type submaps --manifest /absolute/path/to/submaps/submaps.yaml \
-  --output "$OCCUPANCY_JOINING_WORKSPACE/grid-result"
-```
+Importing existing submaps is an [optional advanced interface](docs/CONFIGURATION.md#prebuilt-submaps).
 
 [Full configuration reference](docs/CONFIGURATION.md).
 
