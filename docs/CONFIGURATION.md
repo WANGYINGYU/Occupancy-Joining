@@ -82,7 +82,7 @@ The default is `model: matlab_inverse`, Huber delta 1, inverse raw-value cutoff
 0.5, count cutoff 0.001, N smoothing 1e-6 and the MATLAB cell-coordinate gradient
 approximation. `inverse_gradient: metric` explicitly changes the chain factor.
 The optional `globalized_inverse` model adds accepted-step control; the b2 preset
-uses no continuation (`continuation_sigmas: [0]`). Numerical definitions and
+uses `continuation_sigmas: [8, 4, 2, 1, 0]`. Numerical definitions and
 the count/gradient conventions are summarized in [method](METHOD.md).
 
 ## Optional corrected TXT trajectories
@@ -104,3 +104,13 @@ GT evaluation. Without `--graph-poses`, the initializer runs `slam_toolbox`;
 `--pose-estimate final_graph` requests the final graph. The exported configuration can be used directly by the joining backend.
 
 `display.max_cells` optionally sets a separate reconstruction cell budget; omitted values reuse `optimizer.max_cells`. `display.grid_format` is `text` by default or `npz` for lossless compressed display grids. RViz uses `display.npz`, then `display.grid`, then the native `map.grid`. The directly optimized field keeps its numerical resolution. See the [b2 profile](B2_CONFIGURATION.md).
+
+## Visualization
+
+RViz uses fixed frame `map` and Reliable/Transient Local QoS. Maps are published
+as `nav_msgs/OccupancyGrid`; trajectories and submap frames use `nav_msgs/Path`
+under each state's `/trajectory` and `/submap_frames` topics.
+
+Docker GUI forwarding requires Linux X11/XWayland with `DISPLAY` and `XAUTHORITY` set.
+`OCCUPANCY_JOINING_WORKSPACE` selects the Docker output root; use
+`--mount-input /path/to/data` before `run` for additional input directories.
